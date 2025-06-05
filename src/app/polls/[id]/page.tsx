@@ -42,7 +42,7 @@ export default function PollDetailPage() {
       if (snapshot.exists()) {
         const data = snapshot.data() as PollData
 
-        // ✅ deadline 안전 처리
+        // ✅ 마감일 타입 안전 처리
         const rawDeadline = data.deadline
         let deadlineFormatted: string | undefined = undefined
 
@@ -51,8 +51,13 @@ export default function PollDetailPage() {
           if (!isNaN(d.getTime())) {
             deadlineFormatted = d.toISOString().slice(0, 10)
           }
-        } else if (rawDeadline?.toDate instanceof Function) {
-          const d = rawDeadline.toDate()
+        } else if (
+          typeof rawDeadline === 'object' &&
+          rawDeadline !== null &&
+          'toDate' in rawDeadline &&
+          typeof (rawDeadline as any).toDate === 'function'
+        ) {
+          const d = (rawDeadline as any).toDate()
           if (!isNaN(d.getTime())) {
             deadlineFormatted = d.toISOString().slice(0, 10)
           }
@@ -201,10 +206,4 @@ export default function PollDetailPage() {
     </div>
   )
 }
-
-
-
-
-
-
 

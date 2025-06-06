@@ -26,6 +26,7 @@ interface PollData {
   maxParticipants?: number
   votedUsers?: string[]
   category: string
+  mainImageUrl?: string
 }
 
 export default function PollDetailPage() {
@@ -42,7 +43,7 @@ export default function PollDetailPage() {
       if (snapshot.exists()) {
         const data = snapshot.data() as PollData
 
-        // ✅ 마감일 타입 안전 처리
+        // 마감일 변환
         const rawDeadline = data.deadline
         let deadlineFormatted: string | undefined = undefined
 
@@ -119,6 +120,21 @@ export default function PollDetailPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-4">{poll.title}</h1>
+
+      {/* ✅ 대표 이미지 (빈 문자열도 fallback 처리) */}
+      <div className="mb-6">
+        <Image
+          src={
+            poll.mainImageUrl && poll.mainImageUrl.trim() !== ''
+              ? poll.mainImageUrl
+              : '/images/default_main.jpg'
+          }
+          alt="대표 이미지"
+          width={600}
+          height={300}
+          className="rounded-lg border object-cover"
+        />
+      </div>
 
       <div className="text-sm text-gray-700 space-y-1 mb-6">
         <p>📂 <b>카테고리:</b> {poll.category}</p>

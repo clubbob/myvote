@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/authStore'
 import { format, differenceInCalendarDays } from 'date-fns'
-import { ko } from 'date-fns/locale'  // ✅ 수정된 부분
+import { ko } from 'date-fns/locale'
 
 interface Poll {
   id: string
@@ -19,6 +19,7 @@ interface Poll {
 
 export default function HomePage() {
   const [polls, setPolls] = useState<Poll[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuthStore()
   const router = useRouter()
 
@@ -46,6 +47,7 @@ export default function HomePage() {
         }
       })
       setPolls(list)
+      setIsLoading(false)
     }
 
     fetchPolls()
@@ -66,7 +68,9 @@ export default function HomePage() {
         <span>🔥</span> 실시간 투표 목록
       </h1>
 
-      {polls.length === 0 ? (
+      {isLoading ? (
+        <p className="text-gray-500">투표 불러오는 중...</p>
+      ) : polls.length === 0 ? (
         <p className="text-gray-500">공개된 투표가 없습니다.</p>
       ) : (
         <ul className="space-y-4">
@@ -102,6 +106,7 @@ export default function HomePage() {
     </div>
   )
 }
+
 
 
 

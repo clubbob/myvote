@@ -6,9 +6,13 @@ import { ReactNode, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { auth } from '@/lib/firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { useRouter } from 'next/navigation'
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const { user, setUser, setLoading } = useAuthStore()
+  const { user, loading, setUser, setLoading } = useAuthStore()
+  const router = useRouter()
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
+  const isAdmin = user?.email === adminEmail
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -18,6 +22,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     return () => unsubscribe()
   }, [setUser, setLoading])
 
+  const handleLogout = async () => {
+    await signOut(auth)
+    router.push('/')
+  }
+
   return (
     <html lang="ko">
       <body className="min-h-screen flex flex-col">
@@ -25,22 +34,21 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <header className="bg-slate-100 px-6 py-4 shadow-md flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold text-purple-600">MyVote</Link>
           <nav className="flex gap-4 text-sm font-medium text-purple-700">
-            {/* 공통 메뉴 */}
-            <Link href="/" className="hover:underline">투표 리스트</Link>
-
-            {user ? (
+            {isAdmin ? (
               <>
+                <Link href="/admin/dashboard" className="hover:underline">관리자 대시보드</Link>
+                <button onClick={handleLogout} className="hover:underline">로그아웃</button>
+              </>
+            ) : user ? (
+              <>
+                <Link href="/" className="hover:underline">전체 투표</Link>
                 <Link href="/create" className="hover:underline">투표 만들기</Link>
                 <Link href="/mypage" className="hover:underline">마이페이지</Link>
-                <button
-                  onClick={() => signOut(auth)}
-                  className="hover:underline"
-                >
-                  로그아웃
-                </button>
+                <button onClick={handleLogout} className="hover:underline">로그아웃</button>
               </>
             ) : (
               <>
+                <Link href="/" className="hover:underline">전체 투표</Link>
                 <Link href="/login" className="hover:underline">로그인</Link>
                 <Link href="/signup" className="hover:underline">회원가입</Link>
               </>
@@ -49,7 +57,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* 중간 콘텐츠 */}
-        <main className="flex-1 px-6 py-8 bg-white">{children}</main>
+        <main className="flex-1 px-6 py-8 bg-white">
+          {children}
+        </main>
 
         {/* 하단 푸터 */}
         <footer className="bg-slate-200 text-center text-sm text-gray-600 py-4">
@@ -59,15 +69,3 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-

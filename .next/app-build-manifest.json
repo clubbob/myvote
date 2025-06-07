@@ -16,20 +16,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/login/page.js"
     ],
-    "/create/page": [
+    "/admin/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/create/page.js"
-    ],
-    "/mypage/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mypage/page.js"
-    ],
-    "/polls/[id]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/polls/[id]/page.js"
+      "static/chunks/app/admin/dashboard/page.js"
     ]
   }
 }

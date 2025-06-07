@@ -95,7 +95,11 @@ export default function PollDetailPage() {
       votedUsers: arrayUnion(user.uid),
     })
 
-    setPoll({ ...poll, options: updatedOptions, votedUsers: [...(poll.votedUsers || []), user.uid] })
+    setPoll({
+      ...poll,
+      options: updatedOptions,
+      votedUsers: [...(poll.votedUsers || []), user.uid],
+    })
     setHasVoted(true)
   }
 
@@ -121,7 +125,7 @@ export default function PollDetailPage() {
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-4">{poll.title}</h1>
 
-      {/* ✅ 대표 이미지 (빈 문자열도 fallback 처리) */}
+      {/* ✅ 대표 이미지 */}
       <div className="mb-6">
         <Image
           src={
@@ -147,6 +151,8 @@ export default function PollDetailPage() {
         {poll.options.map((option) => {
           const voteCount = option.votes?.length || 0
           const percent = totalVotes > 0 ? (voteCount / totalVotes) * 100 : 0
+          const hasImage =
+            typeof option.imageUrl === 'string' && option.imageUrl.trim() !== ''
 
           return (
             <div
@@ -158,9 +164,22 @@ export default function PollDetailPage() {
               onClick={() => !hasVoted && setSelectedOptionId(option.id)}
             >
               <p className="mb-1">{option.text}</p>
-              {hasVoted ? (
+
+              {hasImage && (
+                <Image
+                  src={option.imageUrl!}
+                  alt="Option image"
+                  width={120}
+                  height={120}
+                  className="mt-2 rounded"
+                />
+              )}
+
+              {hasVoted && (
                 <>
-                  <p className="text-sm text-gray-600">{voteCount}표 · {percent.toFixed(1)}%</p>
+                  <p className="text-sm text-gray-600">
+                    {voteCount}표 · {percent.toFixed(1)}%
+                  </p>
                   <div className="w-full bg-gray-300 h-2 rounded">
                     <div
                       className="bg-blue-500 h-2 rounded"
@@ -168,16 +187,6 @@ export default function PollDetailPage() {
                     />
                   </div>
                 </>
-              ) : (
-                option.imageUrl && (
-                  <Image
-                    src={option.imageUrl}
-                    alt="Option image"
-                    width={120}
-                    height={120}
-                    className="mt-2 rounded"
-                  />
-                )
               )}
             </div>
           )

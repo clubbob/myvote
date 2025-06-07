@@ -45,17 +45,22 @@ export default function AdminDashboardPage() {
           </div>
         </Link>
 
-        <div className="border rounded-lg p-4 shadow hover:shadow-md transition">
-          <h2 className="text-xl font-semibold mb-2">투표 현황</h2>
-          <p className="text-sm text-gray-600">실시간 투표 진행 상황을 모니터링합니다.</p>
-        </div>
+        <Link href="/admin/polls">
+          <div className="border rounded-lg p-4 shadow hover:shadow-md transition cursor-pointer">
+            <h2 className="text-xl font-semibold mb-2">투표 현황</h2>
+            <p className="text-sm text-gray-600">실시간 투표 진행 상황을 모니터링합니다.</p>
+          </div>
+        </Link>
 
-        <div className="border rounded-lg p-4 shadow hover:shadow-md transition">
-          <h2 className="text-xl font-semibold mb-2">신고 콘텐츠 관리</h2>
-          <p className="text-sm text-gray-600">사용자가 신고한 콘텐츠를 확인하고 조치할 수 있습니다.</p>
-        </div>
+        <Link href="/admin/reports">
+          <div className="border rounded-lg p-4 shadow hover:shadow-md transition cursor-pointer">
+            <h2 className="text-xl font-semibold mb-2">신고 콘텐츠 관리</h2>
+            <p className="text-sm text-gray-600">사용자가 신고한 콘텐츠를 확인하고 조치할 수 있습니다.</p>
+          </div>
+        </Link>
       </div>
     </div>
   )
 }
+
 

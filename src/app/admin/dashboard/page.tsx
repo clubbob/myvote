@@ -38,10 +38,12 @@ export default function AdminDashboardPage() {
           </div>
         </Link>
 
-        <div className="border rounded-lg p-4 shadow hover:shadow-md transition">
-          <h2 className="text-xl font-semibold mb-2">회원 목록</h2>
-          <p className="text-sm text-gray-600">가입된 회원들의 정보를 확인할 수 있습니다.</p>
-        </div>
+        <Link href="/admin/users">
+          <div className="border rounded-lg p-4 shadow hover:shadow-md transition cursor-pointer">
+            <h2 className="text-xl font-semibold mb-2">회원 목록</h2>
+            <p className="text-sm text-gray-600">가입된 회원들의 정보를 확인할 수 있습니다.</p>
+          </div>
+        </Link>
 
         <div className="border rounded-lg p-4 shadow hover:shadow-md transition">
           <h2 className="text-xl font-semibold mb-2">투표 현황</h2>
@@ -56,3 +58,4 @@ export default function AdminDashboardPage() {
     </div>
   )
 }
+

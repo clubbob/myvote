@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signInWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { auth, db } from '@/lib/firebase'
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore'
 
 function getFirebaseLoginError(code: string): string {
   switch (code) {
@@ -49,8 +50,15 @@ export default function LoginPage() {
         return
       }
 
+      // ✅ 로그인 시 Firestore에 lastLoginAt 저장
+      await setDoc(
+        doc(db, 'users', user.uid),
+        { lastLoginAt: serverTimestamp() },
+        { merge: true }
+      )
+
       alert('로그인 성공!')
-      router.push('/') // ✅ 홈으로만 이동 (관리자든 아니든)
+      router.push('/')
     } catch (err: any) {
       console.error('[로그인 오류]', err)
       const code = err.code || ''
@@ -130,5 +138,6 @@ export default function LoginPage() {
     </div>
   )
 }
+
 
 

@@ -50,7 +50,7 @@ export default function LoginPage() {
       }
 
       alert('로그인 성공!')
-      router.push('/')
+      router.push('/') // ✅ 홈으로만 이동 (관리자든 아니든)
     } catch (err: any) {
       console.error('[로그인 오류]', err)
       const code = err.code || ''
@@ -130,4 +130,5 @@ export default function LoginPage() {
     </div>
   )
 }
+
 

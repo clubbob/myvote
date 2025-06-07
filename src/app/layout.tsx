@@ -6,13 +6,16 @@ import { ReactNode, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { auth } from '@/lib/firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const { user, loading, setUser, setLoading } = useAuthStore()
   const router = useRouter()
+  const pathname = usePathname()
+
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
   const isAdmin = user?.email === adminEmail
+  const isAdminPage = pathname.startsWith('/admin')
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -34,18 +37,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <header className="bg-slate-100 px-6 py-4 shadow-md flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold text-purple-600">MyVote</Link>
           <nav className="flex gap-4 text-sm font-medium text-purple-700">
-            {isAdmin ? (
-              <>
-                <Link href="/admin/dashboard" className="hover:underline">관리자 대시보드</Link>
-                <button onClick={handleLogout} className="hover:underline">로그아웃</button>
-              </>
-            ) : user ? (
-              <>
-                <Link href="/" className="hover:underline">전체 투표</Link>
-                <Link href="/create" className="hover:underline">투표 만들기</Link>
-                <Link href="/mypage" className="hover:underline">마이페이지</Link>
-                <button onClick={handleLogout} className="hover:underline">로그아웃</button>
-              </>
+            {user ? (
+              isAdmin && isAdminPage ? (
+                <>
+                  <Link href="/admin/dashboard" className="hover:underline">관리자 대시보드</Link>
+                  <button onClick={handleLogout} className="hover:underline">로그아웃</button>
+                </>
+              ) : (
+                <>
+                  <Link href="/" className="hover:underline">전체 투표</Link>
+                  <Link href="/create" className="hover:underline">투표 만들기</Link>
+                  <Link href="/mypage" className="hover:underline">마이페이지</Link>
+                  <button onClick={handleLogout} className="hover:underline">로그아웃</button>
+                </>
+              )
             ) : (
               <>
                 <Link href="/" className="hover:underline">전체 투표</Link>

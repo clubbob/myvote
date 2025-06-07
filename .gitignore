@@ -67,3 +67,15 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Next.js build output
+.next/
+
+# Firebase local env
+.env.local
+
+# Vercel output (if deployed)
+.vercel/
+
+# Static export (if used)
+out/

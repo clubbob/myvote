@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { db } from '@/lib/firebase'
 import { collection, getDocs, orderBy, query } from 'firebase/firestore'
 import { format } from 'date-fns'
-import ko from 'date-fns/locale/ko'
+import { ko } from 'date-fns/locale' // ✅ 수정된 부분
 
 interface User {
   uid: string
@@ -118,6 +118,7 @@ export default function AdminUsersPage() {
     </div>
   )
 }
+
 
 
 

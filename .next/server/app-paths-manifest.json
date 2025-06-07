@@ -1,9 +1,7 @@
 {
   "/mypage/page": "app/mypage/page.js",
-  "/create/page": "app/create/page.js",
   "/admin/users/page": "app/admin/users/page.js",
   "/page": "app/page.js",
   "/login/page": "app/login/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/admin/categories/page": "app/admin/categories/page.js"
+  "/admin/dashboard/page": "app/admin/dashboard/page.js"
 }

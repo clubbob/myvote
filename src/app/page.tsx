@@ -15,17 +15,18 @@ interface Poll {
   mainImageUrl?: string
 }
 
+const PAGE_SIZE = 6
+
 export default function HomePage() {
   const [polls, setPolls] = useState<Poll[]>([])
-  const [visibleCount, setVisibleCount] = useState(6)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const router = useRouter()
   const { user } = useAuthStore()
 
   useEffect(() => {
     const fetchPolls = async () => {
       const snapshot = await getDocs(collection(db, 'polls'))
-      const pollList = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() })) as Poll[]
+      const pollList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Poll[]
       const publicPolls = pollList
         .filter(p => p.mainImageUrl)
         .sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime())
@@ -36,7 +37,7 @@ export default function HomePage() {
   }, [])
 
   const handleMore = () => {
-    setVisibleCount(prev => prev + 10)
+    setVisibleCount(prev => prev + PAGE_SIZE)
   }
 
   const handleCreateClick = () => {
@@ -121,3 +122,4 @@ export default function HomePage() {
     </div>
   )
 }
+

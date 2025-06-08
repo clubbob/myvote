@@ -194,15 +194,16 @@ export default function CreatePollPage() {
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-8 bg-white shadow-md rounded-xl">
-      <h1 className="text-2xl font-bold text-center mb-8">📝 투표 만들기</h1>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <h1 className="text-2xl font-bold text-center mb-10 text-purple-700">📝 투표 만들기</h1>
+      <form onSubmit={handleSubmit} className="space-y-8">
+
         {/* 공개 여부 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">공개 여부</label>
+          <label className="block text-base font-semibold text-gray-800 mb-2">공개 여부</label>
           <select
             value={isPublic ? 'public' : 'private'}
             onChange={(e) => setIsPublic(e.target.value === 'public')}
-            className="w-full px-4 py-2 border rounded-md text-sm"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
           >
             <option value="public">공개 투표</option>
             <option value="private">비공개 투표</option>
@@ -210,54 +211,57 @@ export default function CreatePollPage() {
         </div>
 
         {!isPublic && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <input
               type="password"
               placeholder="비밀번호 (6~12자)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border rounded-md text-sm"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md"
             />
             <input
               type="password"
               placeholder="비밀번호 재입력"
               value={passwordConfirm}
               onChange={(e) => setPasswordConfirm(e.target.value)}
-              className="w-full px-4 py-2 border rounded-md text-sm"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md"
             />
           </div>
         )}
 
+        {/* 제목 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">제목</label>
+          <label className="block text-base font-semibold text-gray-800 mb-2">제목</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-4 py-2 border rounded-md text-sm"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md"
             required
           />
         </div>
 
+        {/* 대표 이미지 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">대표 이미지 (선택)</label>
+          <label className="block text-base font-semibold text-gray-800 mb-2">대표 이미지 (선택)</label>
           <input
             type="file"
             accept="image/*"
             onChange={(e) => handleMainImageChange(e.target.files?.[0] ?? null)}
-            className="w-full text-sm"
+            className="text-sm"
           />
           {mainImagePreview && (
-            <img src={mainImagePreview} className="w-full mt-2 rounded border" />
+            <img src={mainImagePreview} className="w-full mt-3 rounded border" />
           )}
         </div>
 
+        {/* 카테고리 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">카테고리</label>
+          <label className="block text-base font-semibold text-gray-800 mb-2">카테고리</label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-4 py-2 border rounded-md text-sm"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md"
             required
           >
             <option value="">-- 선택하세요 --</option>
@@ -269,17 +273,18 @@ export default function CreatePollPage() {
           </select>
         </div>
 
+        {/* 옵션 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">투표 옵션</label>
+          <label className="block text-base font-semibold text-gray-800 mb-2">투표 옵션</label>
           <div className="space-y-4">
             {options.map((opt, idx) => (
-              <div key={idx} className="space-y-1">
+              <div key={idx} className="space-y-2">
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     value={opt.text}
                     onChange={(e) => handleOptionChange(idx, e.target.value)}
-                    className="flex-1 px-4 py-2 border rounded-md text-sm"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md"
                     placeholder={`옵션 ${idx + 1}`}
                     required
                   />
@@ -320,39 +325,42 @@ export default function CreatePollPage() {
             <button
               type="button"
               onClick={handleAddOption}
-              className="text-sm text-purple-600 mt-2 hover:underline"
+              className="text-sm text-purple-600 mt-3 hover:underline"
             >
               + 옵션 추가
             </button>
           )}
         </div>
 
+        {/* 마감일 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">마감일</label>
+          <label className="block text-base font-semibold text-gray-800 mb-2">마감일</label>
           <input
             type="date"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
             min={today}
             max={maxDateStr}
-            className="w-full px-4 py-2 border rounded-md text-sm"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md"
             required
           />
         </div>
 
+        {/* 참여자 수 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">참여자 수 (선택)</label>
+          <label className="block text-base font-semibold text-gray-800 mb-2">참여자 수 제한 (선택)</label>
           <input
             type="number"
             min={1}
             value={maxParticipants ?? ''}
             onChange={(e) => setMaxParticipants(Number(e.target.value))}
-            className="w-full px-4 py-2 border rounded-md text-sm"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md"
             placeholder="예: 100"
           />
         </div>
 
-        <div className="text-right">
+        {/* 등록 버튼 */}
+        <div className="text-right pt-4">
           <button
             type="submit"
             className="bg-purple-600 text-white px-6 py-2 rounded-full hover:bg-purple-700 transition"

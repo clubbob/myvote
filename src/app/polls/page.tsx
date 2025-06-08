@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react' // ✅ useRef 추가
 import {
   collection,
   query,
@@ -34,11 +34,15 @@ export default function PublicPollsPage() {
   const [hasMore, setHasMore] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
 
+  const hasFetchedRef = useRef(false) // ✅ 최초 호출 여부 저장
   const { user } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
-    fetchPolls()
+    if (!hasFetchedRef.current) {
+      fetchPolls()
+      hasFetchedRef.current = true
+    }
   }, [])
 
   const fetchPolls = async () => {
@@ -150,3 +154,4 @@ export default function PublicPollsPage() {
     </div>
   )
 }
+

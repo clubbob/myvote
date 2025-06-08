@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth, db } from '@/lib/firebase'
 import { setDoc, doc, serverTimestamp } from 'firebase/firestore'
@@ -23,9 +23,20 @@ function getFirebaseLoginError(code: string): string {
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect') || '/'
+
   const [form, setForm] = useState({ email: '', password: '', rememberEmail: true })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // 이메일 저장 기능
+    const savedEmail = localStorage.getItem('rememberedEmail')
+    if (savedEmail) {
+      setForm((prev) => ({ ...prev, email: savedEmail }))
+    }
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
@@ -38,9 +49,9 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setLoading(true)
 
     try {
-      setLoading(true)
       const userCredential = await signInWithEmailAndPassword(auth, form.email, form.password)
       const user = userCredential.user
 
@@ -50,15 +61,21 @@ export default function LoginPage() {
         return
       }
 
-      // ✅ 로그인 시 Firestore에 lastLoginAt 저장
+      // ✅ 로그인 시간 기록
       await setDoc(
         doc(db, 'users', user.uid),
         { lastLoginAt: serverTimestamp() },
         { merge: true }
       )
 
+      if (form.rememberEmail) {
+        localStorage.setItem('rememberedEmail', form.email)
+      } else {
+        localStorage.removeItem('rememberedEmail')
+      }
+
       alert('로그인 성공!')
-      router.push('/')
+      router.push(redirect)
     } catch (err: any) {
       console.error('[로그인 오류]', err)
       const code = err.code || ''
@@ -138,6 +155,7 @@ export default function LoginPage() {
     </div>
   )
 }
+
 
 
 

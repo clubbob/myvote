@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { auth } from '@/lib/firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { useRouter, usePathname } from 'next/navigation'
+import { Toaster } from 'sonner' // ✅ sonner 추가
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const { user, loading, setUser, setLoading } = useAuthStore()
@@ -67,6 +68,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
 
+        {/* ✅ sonner 알림 출력 위치 */}
+        <Toaster position="top-center" richColors />
+
         {/* 하단 푸터 */}
         <footer className="bg-slate-200 text-center text-sm text-gray-600 py-4">
           © 2025 MyVote. 팬들의 힘으로 세상을 움직이다.
@@ -75,3 +79,4 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   )
 }
+

@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'  // ← 이 줄 추가
+
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signInWithEmailAndPassword } from 'firebase/auth'

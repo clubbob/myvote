@@ -36,6 +36,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* 상단 */}
         <header className="bg-slate-100 px-6 py-4 shadow-md flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold text-purple-600">MyVote</Link>
+
           <nav className="flex gap-4 text-sm font-medium text-purple-700">
             {user ? (
               isAdmin && isAdminPage ? (
@@ -45,7 +46,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </>
               ) : (
                 <>
-                  <Link href="/" className="hover:underline">전체 투표</Link>
+                  <Link href="/polls" className="hover:underline">전체 투표</Link>
                   <Link href="/create" className="hover:underline">투표 만들기</Link>
                   <Link href="/mypage" className="hover:underline">마이페이지</Link>
                   <button onClick={handleLogout} className="hover:underline">로그아웃</button>
@@ -53,7 +54,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               )
             ) : (
               <>
-                <Link href="/" className="hover:underline">전체 투표</Link>
+                {/* 로그인 전에는 전체 투표 메뉴 제거 */}
                 <Link href="/login" className="hover:underline">로그인</Link>
                 <Link href="/signup" className="hover:underline">회원가입</Link>
               </>

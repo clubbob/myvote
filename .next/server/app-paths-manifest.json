@@ -1,11 +1,11 @@
 {
-  "/create/page": "app/create/page.js",
-  "/admin/polls/[id]/page": "app/admin/polls/[id]/page.js",
+  "/page": "app/page.js",
   "/login/page": "app/login/page.js",
+  "/polls/page": "app/polls/page.js",
+  "/polls/[id]/page": "app/polls/[id]/page.js",
   "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/admin/polls/page": "app/admin/polls/page.js",
   "/admin/categories/page": "app/admin/categories/page.js",
   "/admin/users/page": "app/admin/users/page.js",
-  "/page": "app/page.js",
-  "/polls/[id]/page": "app/polls/[id]/page.js"
+  "/admin/polls/page": "app/admin/polls/page.js",
+  "/admin/polls/[id]/page": "app/admin/polls/[id]/page.js"
 }

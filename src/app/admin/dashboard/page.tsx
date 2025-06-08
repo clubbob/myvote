@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 import Link from 'next/link'
 
 export default function AdminDashboardPage() {
-  const { user, loading } = useAuthStore()
+  const { user, loading, setUser } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
@@ -26,6 +26,14 @@ export default function AdminDashboardPage() {
     return null
   }
 
+  const handleLogout = async () => {
+    const { signOut } = await import('firebase/auth')
+    const { auth } = await import('@/lib/firebase')
+    await signOut(auth)
+    setUser(null)
+    router.push('/login')
+  }
+
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold text-purple-700 mb-6">🎛️ 관리자 대시보드</h1>
@@ -34,33 +42,43 @@ export default function AdminDashboardPage() {
         <Link href="/admin/categories">
           <div className="border rounded-lg p-4 shadow hover:shadow-md transition cursor-pointer">
             <h2 className="text-xl font-semibold mb-2">카테고리 관리</h2>
-            <p className="text-sm text-gray-600">투표 카테고리를 추가/수정/삭제할 수 있습니다.</p>
+            <p className="text-sm text-gray-600">
+              투표 카테고리를 추가/수정/삭제할 수 있습니다.
+            </p>
           </div>
         </Link>
 
         <Link href="/admin/users">
           <div className="border rounded-lg p-4 shadow hover:shadow-md transition cursor-pointer">
             <h2 className="text-xl font-semibold mb-2">회원 목록</h2>
-            <p className="text-sm text-gray-600">가입된 회원들의 정보를 확인할 수 있습니다.</p>
+            <p className="text-sm text-gray-600">
+              가입된 회원들의 정보를 확인할 수 있습니다.
+            </p>
           </div>
         </Link>
 
         <Link href="/admin/polls">
           <div className="border rounded-lg p-4 shadow hover:shadow-md transition cursor-pointer">
             <h2 className="text-xl font-semibold mb-2">투표 현황</h2>
-            <p className="text-sm text-gray-600">실시간 투표 진행 상황을 모니터링합니다.</p>
+            <p className="text-sm text-gray-600">
+              실시간 투표 진행 상황을 모니터링합니다.
+            </p>
           </div>
         </Link>
 
         <Link href="/admin/reports">
           <div className="border rounded-lg p-4 shadow hover:shadow-md transition cursor-pointer">
             <h2 className="text-xl font-semibold mb-2">신고 콘텐츠 관리</h2>
-            <p className="text-sm text-gray-600">사용자가 신고한 콘텐츠를 확인하고 조치할 수 있습니다.</p>
+            <p className="text-sm text-gray-600">
+              사용자가 신고한 콘텐츠를 확인하고 조치할 수 있습니다.
+            </p>
           </div>
         </Link>
       </div>
     </div>
   )
 }
+
+
 
 

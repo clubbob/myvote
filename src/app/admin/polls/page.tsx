@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/authStore'
 import { db } from '@/lib/firebase'
 import { collection, getDocs, Timestamp } from 'firebase/firestore'
-import Link from 'next/link'
 import { format, differenceInCalendarDays, isValid } from 'date-fns'
 
 interface Poll {
@@ -23,7 +22,6 @@ export default function AdminPollsPage() {
   const router = useRouter()
   const [polls, setPolls] = useState<Poll[]>([])
 
-  // 관리자 이메일 확인
   useEffect(() => {
     if (!loading) {
       const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
@@ -35,7 +33,6 @@ export default function AdminPollsPage() {
     }
   }, [user, loading, router])
 
-  // 전체 투표 불러오기 + 최신순 정렬
   useEffect(() => {
     const fetchPolls = async () => {
       const snapshot = await getDocs(collection(db, 'polls'))
@@ -44,7 +41,6 @@ export default function AdminPollsPage() {
         ...doc.data()
       })) as Poll[]
 
-      // 🔽 최신순 정렬
       pollList.sort(
         (a, b) =>
           b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime()
@@ -64,13 +60,13 @@ export default function AdminPollsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold text-purple-700 mb-6">📊 투표 현황</h1>
+      <h1 className="text-3xl font-bold text-purple-700 mb-8">📊 투표 현황</h1>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {polls.map(poll => {
           const createdDate = poll.createdAt.toDate()
-
           let deadlineDate: Date | null = null
+
           if (poll.deadline instanceof Timestamp) {
             deadlineDate = poll.deadline.toDate()
           } else if (typeof poll.deadline === 'string') {
@@ -85,42 +81,25 @@ export default function AdminPollsPage() {
           return (
             <div
               key={poll.id}
-              className="p-4 border rounded shadow-sm bg-white space-y-1"
+              onClick={() => router.push(`/admin/polls/${poll.id}`)}
+              className="p-5 bg-white rounded-xl shadow border border-gray-200 hover:ring-2 hover:ring-purple-300 transition cursor-pointer space-y-1"
             >
-              <h2 className="text-xl font-semibold">{poll.title}</h2>
-
-              <p className="text-sm">
+              <h2 className="text-lg font-bold text-gray-800">{poll.title}</h2>
+              <p className="text-sm text-gray-600">
                 {poll.isPublic ? '🔓 공개 투표' : '🔒 비공개 투표'}
               </p>
-              <p className="text-sm">
-                📁 <strong>카테고리:</strong> {poll.category}
+              <p className="text-sm text-gray-600">📁 카테고리: {poll.category}</p>
+              <p className="text-sm text-gray-600">
+                🛠 제작일: {format(createdDate, 'yyyy. M. d.')}
               </p>
-              <p className="text-sm">
-                🛠 <strong>제작일:</strong>{' '}
-                {format(createdDate, 'yyyy. M. d.')}
-              </p>
-
               {isDeadlineValid && (
-                <p className="text-sm">
-                  ⏰ <strong>마감일:</strong>{' '}
-                  {format(deadlineDate, 'yyyy. M. d.')} (
-                  D{dday! >= 0 ? `-${dday}` : `+${Math.abs(dday!)}`})
+                <p className="text-sm text-gray-600">
+                  ⏰ 마감일: {format(deadlineDate, 'yyyy. M. d.')} (D{dday! >= 0 ? `-${dday}` : `+${Math.abs(dday!)}`})
                 </p>
               )}
-
-              <p className="text-sm">
-                👥 <strong>참여제한:</strong>{' '}
-                {poll.maxParticipants
-                  ? `${poll.maxParticipants}명`
-                  : '제한 없음'}
+              <p className="text-sm text-gray-600">
+                👥 참여제한: {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}
               </p>
-
-              <Link
-                href={`/admin/polls/${poll.id}`}
-                className="text-blue-600 underline text-sm inline-block mt-1"
-              >
-                자세히 보기 →
-              </Link>
             </div>
           )
         })}

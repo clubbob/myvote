@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { auth } from '@/lib/firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { useRouter, usePathname } from 'next/navigation'
-import { Toaster } from 'sonner' // ✅ sonner 추가
+import { Toaster } from 'sonner'
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const { user, loading, setUser, setLoading } = useAuthStore()
@@ -28,7 +28,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   const handleLogout = async () => {
     await signOut(auth)
-    router.push('/')
+    setUser(null)
+    router.push('/login')
   }
 
   return (
@@ -42,6 +43,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             {user ? (
               isAdmin && isAdminPage ? (
                 <>
+                  <a
+                    href="/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline"
+                  >
+                    🏠 홈페이지 보기 →
+                  </a>
                   <Link href="/admin/dashboard" className="hover:underline">관리자 대시보드</Link>
                   <button onClick={handleLogout} className="hover:underline">로그아웃</button>
                 </>
@@ -55,7 +64,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               )
             ) : (
               <>
-                {/* 로그인 전에는 전체 투표 메뉴 제거 */}
                 <Link href="/login" className="hover:underline">로그인</Link>
                 <Link href="/signup" className="hover:underline">회원가입</Link>
               </>
@@ -68,7 +76,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
 
-        {/* ✅ sonner 알림 출력 위치 */}
+        {/* sonner 알림 출력 위치 */}
         <Toaster position="top-center" richColors />
 
         {/* 하단 푸터 */}
@@ -79,4 +87,5 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   )
 }
+
 

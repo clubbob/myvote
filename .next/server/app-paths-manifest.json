@@ -1,7 +1,7 @@
 {
+  "/not-found": "app/not-found.js",
+  "/page": "app/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
   "/login/page": "app/login/page.js",
-  "/mypage/page": "app/mypage/page.js",
-  "/polls/[id]/page": "app/polls/[id]/page.js",
-  "/create/page": "app/create/page.js",
-  "/polls/page": "app/polls/page.js"
+  "/admin/polls/page": "app/admin/polls/page.js"
 }

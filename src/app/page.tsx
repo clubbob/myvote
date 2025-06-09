@@ -11,8 +11,9 @@ interface Poll {
   id: string
   title: string
   category: string
-  createdAt: Timestamp
+  createdAt: string | Timestamp
   mainImageUrl?: string
+  isPublic?: boolean
 }
 
 const PAGE_SIZE = 6
@@ -27,9 +28,19 @@ export default function HomePage() {
     const fetchPolls = async () => {
       const snapshot = await getDocs(collection(db, 'polls'))
       const pollList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Poll[]
+
       const publicPolls = pollList
-        .filter(p => p.mainImageUrl)
-        .sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime())
+        .filter(p => p.isPublic !== false && p.mainImageUrl)
+        .sort((a, b) => {
+          const aTime = typeof a.createdAt === 'string'
+            ? new Date(a.createdAt).getTime()
+            : a.createdAt.toDate().getTime()
+          const bTime = typeof b.createdAt === 'string'
+            ? new Date(b.createdAt).getTime()
+            : b.createdAt.toDate().getTime()
+          return bTime - aTime
+        })
+
       setPolls(publicPolls)
     }
 
@@ -85,25 +96,32 @@ export default function HomePage() {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {polls.slice(0, visibleCount).map((poll) => (
-                <div
-                  key={poll.id}
-                  className="cursor-pointer rounded-xl overflow-hidden shadow hover:ring-2 hover:ring-purple-300 transition"
-                  onClick={() => handlePollClick(poll.id)}
-                >
-                  <img
-                    src={poll.mainImageUrl || '/images/default_main.jpg'}
-                    alt="대표 이미지"
-                    className="w-full aspect-[4/3] object-cover"
-                  />
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg">{poll.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      📂 {poll.category} · 🛠 {format(poll.createdAt.toDate(), 'yyyy. M. d.')}
-                    </p>
+              {polls.slice(0, visibleCount).map((poll) => {
+                const createdAtDate =
+                  typeof poll.createdAt === 'string'
+                    ? new Date(poll.createdAt)
+                    : poll.createdAt.toDate()
+
+                return (
+                  <div
+                    key={poll.id}
+                    className="cursor-pointer rounded-xl overflow-hidden shadow hover:ring-2 hover:ring-purple-300 transition"
+                    onClick={() => handlePollClick(poll.id)}
+                  >
+                    <img
+                      src={poll.mainImageUrl || '/images/default_main.jpg'}
+                      alt="대표 이미지"
+                      className="w-full aspect-[4/3] object-cover"
+                    />
+                    <div className="p-4">
+                      <h3 className="font-semibold text-lg">{poll.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        📂 {poll.category} · 🛠 {format(createdAtDate, 'yyyy. M. d.')}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             {visibleCount < polls.length && (
@@ -122,4 +140,5 @@ export default function HomePage() {
     </div>
   )
 }
+
 

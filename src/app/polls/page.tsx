@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react' // ✅ useRef 추가
+import { useEffect, useState, useRef } from 'react'
 import {
   collection,
   query,
@@ -22,7 +22,7 @@ interface Poll {
   id: string
   title: string
   category: string
-  createdAt: Timestamp
+  createdAt: string | Timestamp
   deadline?: string | Timestamp
   maxParticipants?: number
   isPublic: boolean
@@ -34,7 +34,7 @@ export default function PublicPollsPage() {
   const [hasMore, setHasMore] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
 
-  const hasFetchedRef = useRef(false) // ✅ 최초 호출 여부 저장
+  const hasFetchedRef = useRef(false)
   const { user } = useAuthStore()
   const router = useRouter()
 
@@ -99,9 +99,11 @@ export default function PublicPollsPage() {
           <>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {polls.map((poll) => {
-                const createdDate = poll.createdAt.toDate()
-                let deadlineDate: Date | null = null
+                const createdDate = typeof poll.createdAt === 'string'
+                  ? new Date(poll.createdAt)
+                  : poll.createdAt.toDate()
 
+                let deadlineDate: Date | null = null
                 if (poll.deadline instanceof Timestamp) {
                   deadlineDate = poll.deadline.toDate()
                 } else if (typeof poll.deadline === 'string') {
@@ -154,4 +156,5 @@ export default function PublicPollsPage() {
     </div>
   )
 }
+
 

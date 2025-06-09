@@ -21,7 +21,7 @@ interface PollData {
   title: string
   options: PollOption[]
   isPublic: boolean
-  createdAt: any
+  createdAt: string | { toDate: () => Date }
   deadline?: string
   maxParticipants?: number
   votedUsers?: string[]
@@ -48,6 +48,7 @@ export default function PollDetailPage() {
       if (snapshot.exists()) {
         const data = snapshot.data() as PollData
 
+        // 마감일 포맷 처리
         const rawDeadline = data.deadline
         let deadlineFormatted: string | undefined = undefined
 
@@ -150,9 +151,12 @@ export default function PollDetailPage() {
     0
   )
 
-  const createdText = poll.createdAt?.toDate
-    ? format(poll.createdAt.toDate(), 'yyyy. M. d.', { locale: ko })
-    : '날짜 없음'
+  const createdText =
+    typeof poll.createdAt === 'string'
+      ? format(new Date(poll.createdAt), 'yyyy. M. d.', { locale: ko })
+      : poll.createdAt?.toDate
+        ? format(poll.createdAt.toDate(), 'yyyy. M. d.', { locale: ko })
+        : '날짜 없음'
 
   const deadlineText = poll.deadline
     ? `${format(new Date(poll.deadline), 'yyyy. M. d.', { locale: ko })} (D-${Math.max(
@@ -276,4 +280,5 @@ export default function PollDetailPage() {
     </div>
   )
 }
+
 

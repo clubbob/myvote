@@ -20,7 +20,7 @@ interface Option {
   imageUrl?: string | null
 }
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024
 const isValidImageType = (file: File): boolean => {
   const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
   return validTypes.includes(file.type)
@@ -100,6 +100,7 @@ export default function CreatePollPage() {
     setMainImage(file)
     setMainImagePreview(URL.createObjectURL(file))
   }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -109,13 +110,13 @@ export default function CreatePollPage() {
         return
       }
 
-      if (!title.trim()) {
-        alert('제목을 입력하세요.')
+      if (!category) {
+        alert('카테고리를 선택하세요.')
         return
       }
 
-      if (!category) {
-        alert('카테고리를 선택하세요.')
+      if (!title.trim()) {
+        alert('제목을 입력하세요.')
         return
       }
 
@@ -158,8 +159,8 @@ export default function CreatePollPage() {
       )
 
       const DEFAULT_MAIN_IMAGE = '/images/default_main.jpg'
-
       let mainImageUrl = DEFAULT_MAIN_IMAGE
+
       if (mainImage) {
         try {
           const mainRef = ref(storage, `polls/main/${uuidv4()}`)
@@ -179,7 +180,7 @@ export default function CreatePollPage() {
         password: isPublic ? null : password,
         deadline: new Date(deadline),
         maxParticipants: maxParticipants || null,
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),  // 또는 .slice(0, 10)로 'YYYY-MM-DD'만 저장해도 OK
         createdBy: user.uid,
         mainImageUrl,
       })
@@ -191,7 +192,6 @@ export default function CreatePollPage() {
       alert('투표 등록 중 오류가 발생했습니다.')
     }
   }
-
   return (
     <div className="max-w-2xl mx-auto py-12 px-8 bg-white shadow-md rounded-xl">
       <h1 className="text-2xl font-bold text-center mb-10 text-purple-700">📝 투표 만들기</h1>
@@ -210,24 +210,47 @@ export default function CreatePollPage() {
           </select>
         </div>
 
+        {/* 비공개일 경우 비밀번호 입력 */}
         {!isPublic && (
           <div className="space-y-3">
-            <input
-              type="password"
-              placeholder="비밀번호 (6~12자)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md"
-            />
-            <input
-              type="password"
-              placeholder="비밀번호 재입력"
-              value={passwordConfirm}
-              onChange={(e) => setPasswordConfirm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md"
-            />
+            <div>
+              <label className="block text-base font-semibold text-gray-800 mb-1">비밀번호</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                placeholder="6~12자 입력"
+              />
+            </div>
+            <div>
+              <label className="block text-base font-semibold text-gray-800 mb-1">비밀번호 재입력</label>
+              <input
+                type="password"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                placeholder="비밀번호 다시 입력"
+              />
+            </div>
           </div>
         )}
+
+        {/* 카테고리 */}
+        <div>
+          <label className="block text-base font-semibold text-gray-800 mb-2">카테고리</label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-md"
+            required
+          >
+            <option value="">-- 선택하세요 --</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
 
         {/* 제목 */}
         <div>
@@ -253,24 +276,6 @@ export default function CreatePollPage() {
           {mainImagePreview && (
             <img src={mainImagePreview} className="w-full mt-3 rounded border" />
           )}
-        </div>
-
-        {/* 카테고리 */}
-        <div>
-          <label className="block text-base font-semibold text-gray-800 mb-2">카테고리</label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md"
-            required
-          >
-            <option value="">-- 선택하세요 --</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* 옵션 */}
@@ -346,7 +351,7 @@ export default function CreatePollPage() {
           />
         </div>
 
-        {/* 참여자 수 */}
+        {/* 참여자 수 제한 */}
         <div>
           <label className="block text-base font-semibold text-gray-800 mb-2">참여자 수 제한 (선택)</label>
           <input
@@ -372,3 +377,5 @@ export default function CreatePollPage() {
     </div>
   )
 }
+
+

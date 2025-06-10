@@ -83,7 +83,6 @@ export default function MyPage() {
       password: data.password ?? '',
     }
   }
-
   const handleCopy = (poll: Poll) => {
     const url = `${window.location.origin}/polls/${poll.id}`
     const text = poll.isPublic
@@ -109,7 +108,7 @@ export default function MyPage() {
     polls.length === 0 ? (
       <p className="text-gray-500">표시할 투표가 없습니다.</p>
     ) : (
-      <ul className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {polls.slice(0, visibleCount).map((poll) => {
           const createdText = poll.createdAt
             ? format(new Date(poll.createdAt), 'yyyy. M. d.', { locale: ko })
@@ -120,24 +119,27 @@ export default function MyPage() {
 
           const deadlineText = isValidDeadline
             ? `${format(deadlineDate, 'yyyy. M. d.', { locale: ko })} (D-${Math.max(
-              0,
-              differenceInCalendarDays(deadlineDate, new Date())
-            )})`
+                0,
+                differenceInCalendarDays(deadlineDate, new Date())
+              )})`
             : '마감일 없음'
 
           return (
             <li
               key={poll.id}
-              className="bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition"
+              className="min-w-[300px] bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition overflow-hidden"
             >
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  <Link href={`/polls/${poll.id}`} className="hover:underline">
+              <div className="flex justify-between items-start gap-2 mb-2">
+                <h2 className="text-lg font-semibold text-gray-900 leading-snug w-full max-w-full">
+                  <Link
+                    href={`/polls/${poll.id}`}
+                    className="hover:underline block break-words whitespace-normal"
+                  >
                     {poll.title}
                   </Link>
                 </h2>
                 {!poll.isPublic && (
-                  <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-0.5 rounded-full">
+                  <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-0.5 rounded-full whitespace-nowrap">
                     비공개
                   </span>
                 )}
@@ -174,8 +176,7 @@ export default function MyPage() {
 
   return (
     <div className="bg-gray-50 py-10 min-h-screen">
-      <div className="max-w-4xl mx-auto px-6">
-        {/* 내가 만든 투표 */}
+      <div className="max-w-6xl mx-auto px-6">
         <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">📋 내가 만든 투표</h1>
         <div className="flex gap-4 mb-6">
           <button
@@ -203,7 +204,6 @@ export default function MyPage() {
           </div>
         )}
 
-        {/* 내가 참여한 투표 */}
         <h1 className="text-3xl font-bold mt-12 mb-4 flex items-center gap-2">🗳️ 내가 참여한 투표</h1>
         <div className="flex gap-4 mb-6">
           <button
@@ -234,17 +234,4 @@ export default function MyPage() {
     </div>
   )
 }
-  
-
-
-
-
-
-
-
-
-
-
-
-
 

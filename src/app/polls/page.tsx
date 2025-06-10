@@ -120,7 +120,9 @@ export default function PublicPollsPage() {
                     className="bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition cursor-pointer"
                     onClick={() => handleClick(poll.id)}
                   >
-                    <h2 className="text-lg font-semibold text-gray-900 mb-2">{poll.title}</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-2 break-words whitespace-normal text-left">
+                      {poll.title}
+                    </h2>
                     <div className="text-sm text-gray-700 space-y-1">
                       <p>📁 <strong>카테고리:</strong> {poll.category}</p>
                       <p>🛠 <strong>제작일:</strong> {format(createdDate, 'yyyy. M. d.')}</p>

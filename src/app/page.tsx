@@ -114,7 +114,9 @@ export default function HomePage() {
                       className="w-full aspect-[4/3] object-cover"
                     />
                     <div className="p-4">
-                      <h3 className="font-semibold text-lg">{poll.title}</h3>
+                      <h3 className="font-semibold text-lg break-words whitespace-normal">
+                        {poll.title}
+                      </h3>
                       <p className="text-sm text-gray-600 mt-1">
                         📂 {poll.category} · 🛠 {format(createdAtDate, 'yyyy. M. d.')}
                       </p>
@@ -140,5 +142,6 @@ export default function HomePage() {
     </div>
   )
 }
+
 
 

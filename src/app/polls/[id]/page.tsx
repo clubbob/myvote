@@ -48,7 +48,6 @@ export default function PollDetailPage() {
       if (snapshot.exists()) {
         const data = snapshot.data() as PollData
 
-        // 마감일 포맷 처리
         const rawDeadline = data.deadline
         let deadlineFormatted: string | undefined = undefined
 
@@ -83,7 +82,6 @@ export default function PollDetailPage() {
 
     fetchPoll()
   }, [id, user])
-
   const handleVote = async () => {
     if (!poll || !selectedOptionId) return
 
@@ -167,8 +165,9 @@ export default function PollDetailPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-4">{poll.title}</h1>
-
+      <h1 className="text-2xl font-bold mb-4 break-words whitespace-normar">
+        {poll.title}
+      </h1>
       <div className="mb-6">
         <Image
           src={
@@ -280,5 +279,6 @@ export default function PollDetailPage() {
     </div>
   )
 }
+
 
 

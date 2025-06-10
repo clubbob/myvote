@@ -87,6 +87,11 @@ export default function AdminEditPollPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-4">
+      {isLocked && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 rounded text-sm mb-4">
+          ⚠ 참여자가 있는 투표는 <strong>수정할 수 없습니다.</strong>
+        </div>
+      )}
       <h1 className="text-2xl font-bold text-purple-700 text-center mb-6">🛠️ 투표 수정</h1>
 
       {/* 공개 여부 */}
@@ -127,6 +132,7 @@ export default function AdminEditPollPage() {
           </div>
         </>
       )}
+
       {/* 카테고리 */}
       <div>
         <label className="block font-semibold mb-1">카테고리</label>
@@ -142,15 +148,14 @@ export default function AdminEditPollPage() {
       {/* 제목 */}
       <div>
         <label className="block font-semibold mb-1">제목</label>
-        <input
-          type="text"
+        <textarea
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           disabled={isLocked}
-          className="w-full border rounded px-3 py-2"
+          rows={2}
+          className="w-full border rounded px-3 py-2 resize-none break-words whitespace-pre-line"
         />
       </div>
-
       {/* 대표 이미지 */}
       <div>
         <label className="block font-semibold mb-1">대표 이미지</label>
@@ -340,6 +345,7 @@ export default function AdminEditPollPage() {
     </div>
   )
 }
+
 
 
 

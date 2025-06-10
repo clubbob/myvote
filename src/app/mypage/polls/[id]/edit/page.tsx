@@ -61,7 +61,6 @@ export default function EditPollPage() {
 
   const today = format(new Date(), 'yyyy-MM-dd')
   const maxDate = format(addDays(new Date(), 30), 'yyyy-MM-dd')
-
   useEffect(() => {
     const fetchPoll = async () => {
       const docRef = doc(db, 'polls', id as string)
@@ -165,16 +164,15 @@ export default function EditPollPage() {
             ))}
           </select>
         </div>
-
         {/* 제목 */}
         <div>
           <label className="block font-semibold mb-1">제목</label>
-          <input
-            type="text"
+          <textarea
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             disabled={isLocked}
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 resize-none break-words"
+            rows={2}
           />
         </div>
 
@@ -375,4 +373,5 @@ export default function EditPollPage() {
     </div>
   )
 }
+
 

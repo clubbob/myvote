@@ -1,17 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { useEffect, useState } from 'react'
+import { addDoc, collection, getDocs, query, orderBy } from 'firebase/firestore'
 import { db, storage } from '@/lib/firebase'
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-
-const categories = [
-  '팬덤', '연예·사랑', '방송·채널', '패션·뷰티', '음식·요리',
-  '취미·여행', '일상', '사회·문화', '기술', '정치', '경제', '교육', '자유주제'
-]
+import { toast } from 'sonner'
 
 interface Option {
   text: string
@@ -30,6 +26,7 @@ export default function CreatePollPage() {
   const router = useRouter()
   const { user } = useAuthStore()
 
+  const [categories, setCategories] = useState<string[]>([])
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [options, setOptions] = useState<Option[]>([{ text: '' }, { text: '' }])
@@ -45,6 +42,21 @@ export default function CreatePollPage() {
   const maxDate = new Date()
   maxDate.setDate(maxDate.getDate() + 30)
   const maxDateStr = maxDate.toISOString().split('T')[0]
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const q = query(collection(db, 'categories'), orderBy('order', 'asc'))
+        const snapshot = await getDocs(q)
+        const list = snapshot.docs.map(doc => doc.data().name as string)
+        setCategories(list)
+      } catch (error) {
+        console.error('카테고리 불러오기 실패:', error)
+        toast.error('카테고리 불러오기 실패')
+      }
+    }
+    fetchCategories()
+  }, [])
 
   const handleOptionChange = (index: number, value: string) => {
     const updated = [...options]
@@ -100,7 +112,6 @@ export default function CreatePollPage() {
     setMainImage(file)
     setMainImagePreview(URL.createObjectURL(file))
   }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -180,7 +191,7 @@ export default function CreatePollPage() {
         password: isPublic ? null : password,
         deadline: new Date(deadline),
         maxParticipants: maxParticipants || null,
-        createdAt: new Date().toISOString(),  // 또는 .slice(0, 10)로 'YYYY-MM-DD'만 저장해도 OK
+        createdAt: new Date().toISOString(),
         createdBy: user.uid,
         mainImageUrl,
       })
@@ -192,6 +203,7 @@ export default function CreatePollPage() {
       alert('투표 등록 중 오류가 발생했습니다.')
     }
   }
+
   return (
     <div className="max-w-2xl mx-auto py-12 px-8 bg-white shadow-md rounded-xl">
       <h1 className="text-2xl font-bold text-center mb-10 text-purple-700">📝 투표 만들기</h1>
@@ -377,5 +389,6 @@ export default function CreatePollPage() {
     </div>
   )
 }
+
 
 

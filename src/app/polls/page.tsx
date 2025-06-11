@@ -52,7 +52,7 @@ export default function PublicPollsPage() {
       collection(db, 'polls'),
       where('isPublic', '==', true),
       orderBy('createdAt', 'desc'),
-      limit(10)
+      limit(9) // ✅ 9개씩 로드
     )
 
     const q = lastDoc ? query(baseQuery, startAfter(lastDoc)) : baseQuery
@@ -71,7 +71,7 @@ export default function PublicPollsPage() {
 
     setPolls(prev => [...prev, ...newPolls])
     setLastDoc(snapshot.docs[snapshot.docs.length - 1])
-    if (snapshot.docs.length < 10) setHasMore(false)
+    if (snapshot.docs.length < 9) setHasMore(false)
 
     setIsLoading(false)
   }
@@ -88,7 +88,7 @@ export default function PublicPollsPage() {
 
   return (
     <div className="bg-gray-50 py-10 min-h-screen">
-      <div className="max-w-4xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-6">
         <h1 className="text-3xl font-bold text-purple-700 mb-8 flex items-center gap-2">
           🗳️ 전체 공개 투표
         </h1>
@@ -97,7 +97,7 @@ export default function PublicPollsPage() {
           <p className="text-gray-500">공개된 투표가 없습니다.</p>
         ) : (
           <>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {polls.map((poll) => {
                 const createdDate = typeof poll.createdAt === 'string'
                   ? new Date(poll.createdAt)
@@ -158,5 +158,6 @@ export default function PublicPollsPage() {
     </div>
   )
 }
+
 
 

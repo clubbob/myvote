@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: false, // ✅ 드래그 앤 드롭 오류 방지용
+  
   images: {
     remotePatterns: [
       {

@@ -22,6 +22,22 @@ const isValidImageType = (file: File): boolean => {
   return validTypes.includes(file.type)
 }
 
+const categoryDefaultImages: Record<string, string> = {
+  '팬덤': '/images/category/fandom.jpg',
+  '연예·사랑': '/images/category/love.jpg',
+  '방송·채널': '/images/category/media.jpg',
+  '패션·뷰티': '/images/category/fashion.jpg',
+  '음식·요리': '/images/category/food.jpg',
+  '취미·여행': '/images/category/hobby.jpg',
+  '일상': '/images/category/daily.jpg',
+  '사회·문화': '/images/category/culture.jpg',
+  '기술': '/images/category/tech.jpg',
+  '정치': '/images/category/politics.jpg',
+  '경제': '/images/category/economy.jpg',
+  '교육': '/images/category/edu.jpg',
+  '자유주제': '/images/category/free.jpg',
+}
+
 export default function CreatePollPage() {
   const router = useRouter()
   const { user } = useAuthStore()
@@ -57,6 +73,13 @@ export default function CreatePollPage() {
     }
     fetchCategories()
   }, [])
+
+  useEffect(() => {
+    if (!mainImage && !mainImagePreview && category) {
+      const defaultImage = categoryDefaultImages[category]
+      if (defaultImage) setMainImagePreview(defaultImage)
+    }
+  }, [category, mainImage, mainImagePreview])
 
   const handleOptionChange = (index: number, value: string) => {
     const updated = [...options]
@@ -169,8 +192,7 @@ export default function CreatePollPage() {
         })
       )
 
-      const DEFAULT_MAIN_IMAGE = '/images/default_main.jpg'
-      let mainImageUrl = DEFAULT_MAIN_IMAGE
+      let mainImageUrl = mainImagePreview || '/images/default_main.jpg'
 
       if (mainImage) {
         try {
@@ -289,7 +311,6 @@ export default function CreatePollPage() {
             <img src={mainImagePreview} className="w-full mt-3 rounded border" />
           )}
         </div>
-
         {/* 옵션 */}
         <div>
           <label className="block text-base font-semibold text-gray-800 mb-2">투표 옵션</label>
@@ -389,6 +410,3 @@ export default function CreatePollPage() {
     </div>
   )
 }
-
-
-

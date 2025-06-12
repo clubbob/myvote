@@ -35,11 +35,22 @@ interface PollData {
 }
 
 const DEFAULT_IMAGE_URL = '/default-image.png'
-
-const categories = [
-  '팬덤', '연예·사랑', '방송·채널', '패션·뷰티', '음식·요리',
-  '취미·여행', '일상', '사회·문화', '기술', '정치', '경제', '교육', '자유주제'
-]
+const categoryDefaultImages: Record<string, string> = {
+  '팬덤': '/images/category/fandom.jpg',
+  '연예·사랑': '/images/category/love.jpg',
+  '방송·채널': '/images/category/channel.jpg',
+  '패션·뷰티': '/images/category/fashion.jpg',
+  '음식·요리': '/images/category/food.jpg',
+  '취미·여행': '/images/category/travel.jpg',
+  '일상': '/images/category/daily.jpg',
+  '사회·문화': '/images/category/society.jpg',
+  '기술': '/images/category/tech.jpg',
+  '정치': '/images/category/politics.jpg',
+  '경제': '/images/category/economy.jpg',
+  '교육': '/images/category/education.jpg',
+  '자유주제': '/images/category/free.jpg',
+}
+const categories = Object.keys(categoryDefaultImages)
 
 export default function EditPollPage() {
   const { id } = useParams()
@@ -61,6 +72,7 @@ export default function EditPollPage() {
 
   const today = format(new Date(), 'yyyy-MM-dd')
   const maxDate = format(addDays(new Date(), 30), 'yyyy-MM-dd')
+
   useEffect(() => {
     const fetchPoll = async () => {
       const docRef = doc(db, 'polls', id as string)
@@ -79,7 +91,7 @@ export default function EditPollPage() {
       setPasswordConfirm(data.password ?? '')
       setDeadline(data.deadline ?? '')
       setMaxParticipants(data.maxParticipants)
-      setMainImageUrl(data.mainImageUrl || DEFAULT_IMAGE_URL)
+      setMainImageUrl(data.mainImageUrl || categoryDefaultImages[data.category] || DEFAULT_IMAGE_URL)
       setOptions(data.options)
       setCategory(data.category)
       setCreatedAt(format(new Date(), 'yyyy-MM-dd'))
@@ -90,6 +102,12 @@ export default function EditPollPage() {
     fetchPoll()
   }, [id, router])
 
+  useEffect(() => {
+    if (!mainImageFile && (!mainImageUrl || mainImageUrl.includes(DEFAULT_IMAGE_URL))) {
+      const fallback = categoryDefaultImages[category] || DEFAULT_IMAGE_URL
+      setMainImageUrl(`${fallback}?t=${Date.now()}`)
+    }
+  }, [category])
   if (loading) return <div className="p-6">로딩 중...</div>
   return (
     <div className="max-w-3xl mx-auto p-6">
@@ -111,7 +129,7 @@ export default function EditPollPage() {
       <div className="space-y-4">
         <div className="text-sm text-gray-500">등록일: {createdAt}</div>
 
-        {/* 공개 여부 + 비밀번호 */}
+        {/* 공개 여부 */}
         <div>
           <label className="font-semibold block mb-1">공개 여부</label>
           <select
@@ -164,6 +182,7 @@ export default function EditPollPage() {
             ))}
           </select>
         </div>
+
         {/* 제목 */}
         <div>
           <label className="block font-semibold mb-1">제목</label>
@@ -216,7 +235,6 @@ export default function EditPollPage() {
             />
           )}
         </div>
-
         {/* 옵션 목록 */}
         <div>
           <label className="block font-semibold mb-1">옵션 목록</label>
@@ -284,7 +302,7 @@ export default function EditPollPage() {
           ))}
         </div>
 
-        {/* 마감일 + 참여자 제한 */}
+        {/* 마감일 + 참여자 수 제한 */}
         <div>
           <label className="block font-semibold mb-1">마감일</label>
           <input
@@ -310,7 +328,6 @@ export default function EditPollPage() {
           />
         </div>
 
-        {/* 저장/삭제 버튼 */}
         {!isLocked && (
           <div className="flex justify-end gap-4 mt-6">
             <button
@@ -373,5 +390,6 @@ export default function EditPollPage() {
     </div>
   )
 }
+
 
 

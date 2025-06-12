@@ -19,22 +19,35 @@ import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautif
 interface Category {
   id: string
   name: string
+  imagePath: string
   order: number
 }
 
-interface EditState {
-  [key: string]: {
-    name: string
-    originalName: string
-    isEditing: boolean
-  }
-}
+const imageFiles = [
+  'fandom.jpg',
+  'love.jpg',
+  'media.jpg',
+  'fashion.jpg',
+  'food.jpg',
+  'hobby.jpg',
+  'daily.jpg',
+  'culture.jpg',
+  'tech.jpg',
+  'politics.jpg',
+  'economy.jpg',
+  'edu.jpg',
+  'free.jpg',
+]
 
 export default function AdminCategoryPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [newCategory, setNewCategory] = useState('')
+  const [newImagePath, setNewImagePath] = useState('')
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editImagePath, setEditImagePath] = useState('')
   const [loading, setLoading] = useState(true)
-  const [editState, setEditState] = useState<EditState>({})
+  const [isDirty, setIsDirty] = useState(false)
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -44,22 +57,11 @@ export default function AdminCategoryPage() {
         const list = snapshot.docs.map(doc => ({
           id: doc.id,
           name: doc.data().name,
+          imagePath: doc.data().imagePath ?? '',
           order: doc.data().order ?? 0,
         }))
         setCategories(list)
-
-        // 초기 editState 세팅
-        const initialEditState: EditState = {}
-        list.forEach(cat => {
-          initialEditState[cat.id] = {
-            name: cat.name,
-            originalName: cat.name,
-            isEditing: false,
-          }
-        })
-        setEditState(initialEditState)
       } catch (error) {
-        console.error('카테고리 불러오기 실패:', error)
         toast.error('카테고리 불러오기 실패')
       } finally {
         setLoading(false)
@@ -68,136 +70,100 @@ export default function AdminCategoryPage() {
     fetchCategories()
   }, [])
 
+  const normalizeImagePath = (filename: string) => {
+    return filename.startsWith('/images/category/')
+      ? filename
+      : `/images/category/${filename}`
+  }
+
   const handleAdd = async () => {
-    if (!newCategory.trim()) return
+    if (!newCategory.trim() || !newImagePath.trim()) return
+    const fullPath = normalizeImagePath(newImagePath)
     const nextOrder = categories.length + 1
     const docRef = await addDoc(collection(db, 'categories'), {
       name: newCategory.trim(),
+      imagePath: fullPath,
       order: nextOrder,
     })
-    const newCat = { id: docRef.id, name: newCategory.trim(), order: nextOrder }
-    setCategories([...categories, newCat])
-    setEditState(prev => ({
-      ...prev,
-      [newCat.id]: {
-        name: newCat.name,
-        originalName: newCat.name,
-        isEditing: false,
-      },
-    }))
+    setCategories([...categories, {
+      id: docRef.id,
+      name: newCategory.trim(),
+      imagePath: fullPath,
+      order: nextOrder,
+    }])
     setNewCategory('')
+    setNewImagePath('')
     toast.success('카테고리가 추가되었습니다!')
   }
 
   const handleDelete = async (id: string) => {
     await deleteDoc(doc(db, 'categories', id))
-    setCategories(categories.filter((cat) => cat.id !== id))
-    setEditState(prev => {
-      const copy = { ...prev }
-      delete copy[id]
-      return copy
-    })
+    setCategories(categories.filter(cat => cat.id !== id))
+    setIsDirty(true)
     toast.info('카테고리가 삭제되었습니다.')
   }
 
-  const onDragEnd = async (result: DropResult) => {
+  const onDragEnd = (result: DropResult) => {
     if (!result.destination) return
-
-    const reordered = Array.from(categories)
+    const reordered = [...categories]
     const [removed] = reordered.splice(result.source.index, 1)
     reordered.splice(result.destination.index, 0, removed)
-
-    const updated = reordered.map((cat, idx) => ({
-      ...cat,
-      order: idx + 1,
-    }))
-
+    const updated = reordered.map((cat, idx) => ({ ...cat, order: idx + 1 }))
     setCategories(updated)
-
+    setIsDirty(true)
+  }
+  const handleSaveOrder = async () => {
     try {
       const batch = writeBatch(db)
-      updated.forEach(cat => {
+      categories.forEach(cat => {
         const docRef = doc(db, 'categories', cat.id)
         batch.update(docRef, { order: cat.order })
       })
       await batch.commit()
       toast.success('순서가 저장되었습니다.')
+      setIsDirty(false)
     } catch (err) {
-      console.error('순서 저장 오류:', err)
-      toast.error('순서 저장에 실패했습니다.')
+      toast.error('순서 저장 실패')
     }
   }
 
-  const startEdit = (id: string) => {
-    setEditState(prev => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        isEditing: true,
-      }
-    }))
-  }
-
-  const cancelEdit = (id: string) => {
-    setEditState(prev => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        name: prev[id].originalName,
-        isEditing: false,
-      }
-    }))
-  }
-
-  const changeName = (id: string, newName: string) => {
-    setEditState(prev => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        name: newName,
-      }
-    }))
-  }
-
-  const saveName = async (id: string) => {
-    const newName = editState[id].name.trim()
-    if (!newName) {
-      toast.error('카테고리 이름을 비워둘 수 없습니다.')
-      return
-    }
-    try {
-      const docRef = doc(db, 'categories', id)
-      await updateDoc(docRef, { name: newName })
-      setCategories(prev =>
-        prev.map(cat => (cat.id === id ? { ...cat, name: newName } : cat))
+  const handleUpdate = async (id: string, name: string, imagePath: string) => {
+    const fullPath = normalizeImagePath(imagePath)
+    const docRef = doc(db, 'categories', id)
+    await updateDoc(docRef, { name, imagePath: fullPath })
+    setCategories(prev =>
+      prev.map(cat =>
+        cat.id === id ? { ...cat, name, imagePath: fullPath } : cat
       )
-      setEditState(prev => ({
-        ...prev,
-        [id]: {
-          name: newName,
-          originalName: newName,
-          isEditing: false,
-        }
-      }))
-      toast.success('카테고리 이름이 저장되었습니다.')
-    } catch (error) {
-      console.error('카테고리 이름 저장 실패:', error)
-      toast.error('카테고리 이름 저장에 실패했습니다.')
-    }
+    )
+    toast.success('카테고리 수정 완료!')
   }
 
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold text-purple-700 mb-4">📁 카테고리 관리</h1>
 
-      <div className="flex mb-4 gap-2">
+      {/* 추가 폼 */}
+      <div className="flex flex-col gap-2 mb-4">
         <input
           type="text"
           value={newCategory}
           onChange={(e) => setNewCategory(e.target.value)}
-          placeholder="새 카테고리명 입력"
-          className="flex-1 border px-3 py-2 rounded shadow-sm"
+          placeholder="카테고리명"
+          className="border px-3 py-2 rounded shadow-sm"
         />
+        <select
+          value={newImagePath}
+          onChange={(e) => setNewImagePath(e.target.value)}
+          className="border px-3 py-2 rounded"
+        >
+          <option value="">파일 선택</option>
+          {imageFiles.map(file => (
+            <option key={file} value={file}>
+              {file}
+            </option>
+          ))}
+        </select>
         <button
           onClick={handleAdd}
           className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
@@ -206,86 +172,112 @@ export default function AdminCategoryPage() {
         </button>
       </div>
 
+      {/* 리스트 */}
       {loading ? (
         <p className="text-gray-500">카테고리를 불러오는 중...</p>
-      ) : categories.length === 0 ? (
-        <p className="text-gray-500">등록된 카테고리가 없습니다.</p>
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="categories">
             {(provided) => (
-              <ul
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="space-y-2"
-              >
-                {categories.map((cat, index) => {
-                  const isEditing = editState[cat.id]?.isEditing || false
-                  return (
-                    <Draggable key={cat.id} draggableId={cat.id} index={index}>
-                      {(provided, snapshot) => (
-                        <li
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className={`flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 px-4 py-2 border rounded gap-2 select-none ${
-                            snapshot.isDragging ? 'bg-purple-100 shadow-lg cursor-grabbing' : 'cursor-grab'
-                          }`}
-                        >
-                          <div className="flex gap-2 items-center w-full sm:w-auto">
-                            {isEditing ? (
+              <ul {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                {categories.map((cat, index) => (
+                  <Draggable key={cat.id} draggableId={cat.id} index={index}>
+                    {(provided, snapshot) => (
+                      <li
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`bg-gray-50 px-4 py-3 border rounded shadow-sm ${
+                          snapshot.isDragging ? 'bg-purple-100' : ''
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div {...provided.dragHandleProps} className="text-gray-400 cursor-grab pt-1">⠿</div>
+                          <div className="flex-1">
+                            {editId === cat.id ? (
                               <>
                                 <input
-                                  type="text"
-                                  value={editState[cat.id].name}
-                                  onChange={(e) => changeName(cat.id, e.target.value)}
-                                  className="border px-2 py-1 rounded text-sm flex-1"
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                  className="border px-2 py-1 rounded text-sm w-full mb-1"
                                 />
-                                <button
-                                  onClick={() => saveName(cat.id)}
-                                  className="text-blue-600 text-sm hover:underline"
+                                <select
+                                  value={editImagePath.replace('/images/category/', '')}
+                                  onChange={(e) => setEditImagePath(e.target.value)}
+                                  className="border px-2 py-1 rounded text-sm w-full"
                                 >
-                                  저장
-                                </button>
-                                <button
-                                  onClick={() => cancelEdit(cat.id)}
-                                  className="text-gray-600 text-sm hover:underline"
-                                >
-                                  취소
-                                </button>
+                                  <option value="">파일 선택</option>
+                                  {imageFiles.map(file => (
+                                    <option key={file} value={file}>
+                                      {file}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="mt-2 flex gap-3 text-sm">
+                                  <button
+                                    onClick={() => {
+                                      handleUpdate(cat.id, editName, editImagePath)
+                                      setEditId(null)
+                                    }}
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    저장
+                                  </button>
+                                  <button
+                                    onClick={() => setEditId(null)}
+                                    className="text-gray-500 hover:underline"
+                                  >
+                                    취소
+                                  </button>
+                                </div>
                               </>
                             ) : (
                               <>
-                                <span className="flex-1">{cat.name}</span>
-                                <button
-                                  onClick={() => startEdit(cat.id)}
-                                  className="text-blue-600 text-sm hover:underline"
-                                >
-                                  수정
-                                </button>
+                                <div className="font-medium">{cat.name}</div>
+                                <div className="text-xs text-gray-500 break-all">{cat.imagePath}</div>
                               </>
                             )}
                           </div>
-
-                          <div className="flex gap-2 justify-end">
-                            <button
-                              onClick={() => handleDelete(cat.id)}
-                              className="text-red-500 text-sm hover:underline"
-                            >
-                              삭제
-                            </button>
-                          </div>
-                        </li>
-                      )}
-                    </Draggable>
-                  )
-                })}
+                          {editId !== cat.id && (
+                            <div className="flex flex-col gap-1 text-right text-sm whitespace-nowrap">
+                              <button
+                                onClick={() => {
+                                  setEditId(cat.id)
+                                  setEditName(cat.name)
+                                  setEditImagePath(cat.imagePath)
+                                }}
+                                className="text-blue-600 hover:underline"
+                              >
+                                수정
+                              </button>
+                              <button
+                                onClick={() => handleDelete(cat.id)}
+                                className="text-red-500 hover:underline"
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    )}
+                  </Draggable>
+                ))}
                 {provided.placeholder}
               </ul>
             )}
           </Droppable>
         </DragDropContext>
       )}
+
+      {isDirty && (
+        <button
+          onClick={handleSaveOrder}
+          className="mt-6 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+        >
+          순서 저장
+        </button>
+      )}
     </div>
   )
 }
+

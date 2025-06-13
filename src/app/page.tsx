@@ -12,11 +12,12 @@ interface Poll {
   title: string
   category: string
   createdAt: string | Timestamp
+  deadline?: string | Timestamp
   mainImageUrl?: string
   isPublic?: boolean
 }
 
-const PAGE_SIZE = 6
+const PAGE_SIZE = 8
 
 export default function HomePage() {
   const [polls, setPolls] = useState<Poll[]>([])
@@ -29,8 +30,20 @@ export default function HomePage() {
       const snapshot = await getDocs(collection(db, 'polls'))
       const pollList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Poll[]
 
-      const publicPolls = pollList
-        .filter(p => p.isPublic !== false && p.mainImageUrl)
+      const now = new Date()
+      const activePublicPolls = pollList
+        .filter(p => {
+          const deadlineDate =
+            typeof p.deadline === 'string'
+              ? new Date(p.deadline)
+              : p.deadline?.toDate?.() ?? null
+
+          return (
+            p.isPublic !== false &&
+            deadlineDate &&
+            deadlineDate > now
+          )
+        })
         .sort((a, b) => {
           const aTime = typeof a.createdAt === 'string'
             ? new Date(a.createdAt).getTime()
@@ -41,7 +54,7 @@ export default function HomePage() {
           return bTime - aTime
         })
 
-      setPolls(publicPolls)
+      setPolls(activePublicPolls)
     }
 
     fetchPolls()
@@ -95,7 +108,7 @@ export default function HomePage() {
           <p className="text-gray-400">등록된 투표가 아직 없어요.</p>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {polls.slice(0, visibleCount).map((poll) => {
                 const createdAtDate =
                   typeof poll.createdAt === 'string'
@@ -114,7 +127,7 @@ export default function HomePage() {
                       className="w-full aspect-[4/3] object-cover"
                     />
                     <div className="p-4">
-                      <h3 className="font-semibold text-lg break-words whitespace-normal">
+                      <h3 className="font-semibold text-lg line-clamp-2 break-words whitespace-normal">
                         {poll.title}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
@@ -142,6 +155,5 @@ export default function HomePage() {
     </div>
   )
 }
-
 
 

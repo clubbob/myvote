@@ -16,33 +16,23 @@ interface Option {
   imageUrl?: string | null
 }
 
+interface CategoryDoc {
+  name: string
+  slug: string
+  imagePath: string
+}
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const isValidImageType = (file: File): boolean => {
   const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
   return validTypes.includes(file.type)
 }
 
-const categoryDefaultImages: Record<string, string> = {
-  '팬덤': '/images/category/fandom.jpg',
-  '연예·사랑': '/images/category/love.jpg',
-  '방송·채널': '/images/category/media.jpg',
-  '패션·뷰티': '/images/category/fashion.jpg',
-  '음식·요리': '/images/category/food.jpg',
-  '취미·여행': '/images/category/hobby.jpg',
-  '일상': '/images/category/daily.jpg',
-  '사회·문화': '/images/category/culture.jpg',
-  '기술': '/images/category/tech.jpg',
-  '정치': '/images/category/politics.jpg',
-  '경제': '/images/category/economy.jpg',
-  '교육': '/images/category/edu.jpg',
-  '자유주제': '/images/category/free.jpg',
-}
-
 export default function CreatePollPage() {
   const router = useRouter()
   const { user } = useAuthStore()
 
-  const [categories, setCategories] = useState<string[]>([])
+  const [categories, setCategories] = useState<CategoryDoc[]>([])
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [options, setOptions] = useState<Option[]>([{ text: '' }, { text: '' }])
@@ -59,12 +49,15 @@ export default function CreatePollPage() {
   maxDate.setDate(maxDate.getDate() + 30)
   const maxDateStr = maxDate.toISOString().split('T')[0]
 
+  const getCategoryDefaultImage = (name: string) =>
+    categories.find((c) => c.name === name)?.imagePath || '/images/default_main.jpg'
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const q = query(collection(db, 'categories'), orderBy('order', 'asc'))
         const snapshot = await getDocs(q)
-        const list = snapshot.docs.map(doc => doc.data().name as string)
+        const list = snapshot.docs.map(doc => doc.data() as CategoryDoc)
         setCategories(list)
       } catch (error) {
         console.error('카테고리 불러오기 실패:', error)
@@ -75,11 +68,31 @@ export default function CreatePollPage() {
   }, [])
 
   useEffect(() => {
-    if (!mainImage && !mainImagePreview && category) {
-      const defaultImage = categoryDefaultImages[category]
-      if (defaultImage) setMainImagePreview(defaultImage)
+    if (!mainImage && category) {
+      const fallback = getCategoryDefaultImage(category)
+      setMainImagePreview(fallback)
     }
-  }, [category, mainImage, mainImagePreview])
+  }, [category, mainImage, categories])
+
+  const handleDeleteMainImage = () => {
+    const fallback = getCategoryDefaultImage(category)
+    setMainImage(null)
+    setMainImagePreview(fallback)
+  }
+
+  const handleMainImageChange = (file: File | null) => {
+    if (!file) return
+    if (!isValidImageType(file)) {
+      alert('지원하지 않는 이미지 형식입니다. (JPEG, PNG, GIF, WEBP만 가능)')
+      return
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      alert('이미지 크기는 5MB 이하여야 합니다.')
+      return
+    }
+    setMainImage(file)
+    setMainImagePreview(URL.createObjectURL(file))
+  }
 
   const handleOptionChange = (index: number, value: string) => {
     const updated = [...options]
@@ -119,21 +132,6 @@ export default function CreatePollPage() {
   const handleRemoveOption = (index: number) => {
     if (options.length <= 2) return
     setOptions(options.filter((_, i) => i !== index))
-  }
-
-  const handleMainImageChange = (file: File | null) => {
-    if (!file) return
-    if (!isValidImageType(file)) {
-      alert('지원하지 않는 이미지 형식입니다. (JPEG, PNG, GIF, WEBP만 가능)')
-      return
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      alert('이미지 크기는 5MB 이하여야 합니다.')
-      return
-    }
-
-    setMainImage(file)
-    setMainImagePreview(URL.createObjectURL(file))
   }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -192,7 +190,7 @@ export default function CreatePollPage() {
         })
       )
 
-      let mainImageUrl = mainImagePreview || '/images/default_main.jpg'
+      let mainImageUrl = mainImagePreview || getCategoryDefaultImage(category)
 
       if (mainImage) {
         try {
@@ -225,12 +223,10 @@ export default function CreatePollPage() {
       alert('투표 등록 중 오류가 발생했습니다.')
     }
   }
-
   return (
     <div className="max-w-2xl mx-auto py-12 px-8 bg-white shadow-md rounded-xl">
       <h1 className="text-2xl font-bold text-center mb-10 text-purple-700">📝 투표 만들기</h1>
       <form onSubmit={handleSubmit} className="space-y-8">
-
         {/* 공개 여부 */}
         <div>
           <label className="block text-base font-semibold text-gray-800 mb-2">공개 여부</label>
@@ -281,7 +277,7 @@ export default function CreatePollPage() {
           >
             <option value="">-- 선택하세요 --</option>
             {categories.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c.slug} value={c.name}>{c.name}</option>
             ))}
           </select>
         </div>
@@ -308,9 +304,19 @@ export default function CreatePollPage() {
             className="text-sm"
           />
           {mainImagePreview && (
-            <img src={mainImagePreview} className="w-full mt-3 rounded border" />
+            <div className="relative">
+              <img src={mainImagePreview} className="w-full mt-3 rounded border" />
+              <button
+                type="button"
+                onClick={handleDeleteMainImage}
+                className="absolute top-2 right-2 text-xs bg-red-600 text-white px-2 py-1 rounded"
+              >
+                삭제
+              </button>
+            </div>
           )}
         </div>
+
         {/* 옵션 */}
         <div>
           <label className="block text-base font-semibold text-gray-800 mb-2">투표 옵션</label>

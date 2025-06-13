@@ -42,12 +42,12 @@ const categoryDefaultImages: Record<string, string> = {
   '패션·뷰티': '/images/category/fashion.jpg',
   '음식·요리': '/images/category/food.jpg',
   '취미·여행': '/images/category/travel.jpg',
-  '일상': '/images/category/daily.jpg',
-  '사회·문화': '/images/category/society.jpg',
-  '기술': '/images/category/tech.jpg',
+  '일상·건강': '/images/category/daily.jpg',
+  '사회·문화': '/images/category/culture.jpg',
+  'IT·기술': '/images/category/tech.jpg',
   '정치': '/images/category/politics.jpg',
   '경제': '/images/category/economy.jpg',
-  '교육': '/images/category/education.jpg',
+  '교육': '/images/category/edu.jpg',
   '자유주제': '/images/category/free.jpg',
 }
 const categories = Object.keys(categoryDefaultImages)
@@ -94,7 +94,7 @@ export default function EditPollPage() {
       setMainImageUrl(data.mainImageUrl || categoryDefaultImages[data.category] || DEFAULT_IMAGE_URL)
       setOptions(data.options)
       setCategory(data.category)
-      setCreatedAt(format(new Date(), 'yyyy-MM-dd'))
+      setCreatedAt(data.createdAt ?? format(new Date(), 'yyyy-MM-dd'))
       setIsLocked((data.votedUsers?.length ?? 0) > 0)
       setLoading(false)
     }
@@ -103,11 +103,12 @@ export default function EditPollPage() {
   }, [id, router])
 
   useEffect(() => {
-    if (!mainImageFile && (!mainImageUrl || mainImageUrl.includes(DEFAULT_IMAGE_URL))) {
+    if (!mainImageFile) {
       const fallback = categoryDefaultImages[category] || DEFAULT_IMAGE_URL
       setMainImageUrl(`${fallback}?t=${Date.now()}`)
     }
-  }, [category])
+  }, [category, mainImageFile])
+
   if (loading) return <div className="p-6">로딩 중...</div>
   return (
     <div className="max-w-3xl mx-auto p-6">
@@ -210,12 +211,17 @@ export default function EditPollPage() {
               {!isLocked && (
                 <button
                   onClick={async () => {
-                    if (mainImageUrl !== DEFAULT_IMAGE_URL) {
-                      const refPath = `polls/main/${id}`
-                      await deleteObject(ref(storage, refPath)).catch(() => {})
+                    try {
+                      if (mainImageUrl !== DEFAULT_IMAGE_URL) {
+                        const refPath = `polls/main/${id}`
+                        await deleteObject(ref(storage, refPath))
+                      }
+                      setMainImageUrl(`${DEFAULT_IMAGE_URL}?t=${Date.now()}`)
+                      toast.success('대표 이미지 삭제 완료')
+                    } catch (err) {
+                      console.error(err)
+                      toast.error('대표 이미지 삭제 실패')
                     }
-                    setMainImageUrl(`${DEFAULT_IMAGE_URL}?t=${Date.now()}`)
-                    toast.success('대표 이미지 삭제 완료')
                   }}
                   className="text-sm text-red-500 hover:underline mt-1 ml-2"
                 >
@@ -235,6 +241,7 @@ export default function EditPollPage() {
             />
           )}
         </div>
+
         {/* 옵션 목록 */}
         <div>
           <label className="block font-semibold mb-1">옵션 목록</label>
@@ -390,6 +397,3 @@ export default function EditPollPage() {
     </div>
   )
 }
-
-
-

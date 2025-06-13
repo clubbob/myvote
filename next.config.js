@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false, // ✅ 드래그 앤 드롭 오류 방지용
-  
+  reactStrictMode: false,
   images: {
     remotePatterns: [
       {
@@ -11,8 +10,11 @@ const nextConfig = {
       },
     ],
   },
-  // output: 'export', // ❌ 정적 모드 비활성화 (필요 없으면 그대로 두기)
+  // experimental: {
+  //   appDir: true,  // Next.js 14부터 기본 활성화라 필요 없음
+  // },
 }
 
 module.exports = nextConfig
+
 

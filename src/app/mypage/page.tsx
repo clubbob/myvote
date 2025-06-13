@@ -28,8 +28,8 @@ export default function MyPage() {
   const [votedPolls, setVotedPolls] = useState<Poll[]>([])
   const [myFilter, setMyFilter] = useState<FilterType>('active')
   const [votedFilter, setVotedFilter] = useState<FilterType>('active')
-  const [visibleMyCount, setVisibleMyCount] = useState(10)
-  const [visibleVotedCount, setVisibleVotedCount] = useState(10)
+  const [visibleMyCount, setVisibleMyCount] = useState(9)
+  const [visibleVotedCount, setVisibleVotedCount] = useState(9)
 
   useEffect(() => {
     if (!user) return
@@ -196,7 +196,7 @@ export default function MyPage() {
         {filterPolls(myPolls, myFilter).length > visibleMyCount && (
           <div className="mt-6 text-center">
             <button
-              onClick={() => setVisibleMyCount((prev) => prev + 10)}
+              onClick={() => setVisibleMyCount((prev) => prev + 9)}
               className="text-sm px-4 py-2 bg-gray-200 rounded-full hover:bg-gray-300"
             >
               더 보기
@@ -223,7 +223,7 @@ export default function MyPage() {
         {filterPolls(votedPolls, votedFilter).length > visibleVotedCount && (
           <div className="mt-6 text-center">
             <button
-              onClick={() => setVisibleVotedCount((prev) => prev + 10)}
+              onClick={() => setVisibleVotedCount((prev) => prev + 9)}
               className="text-sm px-4 py-2 bg-gray-200 rounded-full hover:bg-gray-300"
             >
               더 보기

@@ -49,8 +49,9 @@ export default function AdminPollDetailPage() {
 
   const createdDate = poll.createdAt ? new Date(poll.createdAt) : null
   const deadlineDate = poll.deadline ? new Date(poll.deadline) : null
-  const dday = deadlineDate
-    ? differenceInCalendarDays(deadlineDate, new Date())
+  const isValidDeadlineDate = deadlineDate instanceof Date && !isNaN(deadlineDate.getTime())
+  const dday = isValidDeadlineDate
+    ? Math.max(0, differenceInCalendarDays(deadlineDate, new Date()))
     : null
 
   return (
@@ -77,8 +78,10 @@ export default function AdminPollDetailPage() {
 
       <div className="text-sm text-gray-700 space-y-1 mb-6">
         <p>📂 <b>카테고리:</b> {poll.category}</p>
-        {createdDate && <p>🛠 <b>제작일:</b> {format(createdDate, 'yyyy. M. d.')}</p>}
-        {deadlineDate && (
+        {createdDate && (
+          <p>🛠 <b>제작일:</b> {format(createdDate, 'yyyy. M. d.')}</p>
+        )}
+        {isValidDeadlineDate && (
           <p>⏰ <b>마감일:</b> {format(deadlineDate, 'yyyy. M. d.')} (D-{dday})</p>
         )}
         <p>🔐 <b>공개 여부:</b> {poll.isPublic ? '공개' : '비공개'}</p>
@@ -108,6 +111,7 @@ export default function AdminPollDetailPage() {
     </div>
   )
 }
+
 
   
 

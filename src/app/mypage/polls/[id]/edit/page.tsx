@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   doc, getDoc, updateDoc, deleteDoc,
+  collection, getDocs, orderBy, query
 } from 'firebase/firestore'
 import {
   ref, uploadBytes, getDownloadURL, deleteObject,
@@ -34,23 +35,14 @@ interface PollData {
   createdAt?: string
 }
 
-const DEFAULT_IMAGE_URL = '/default-image.png'
-const categoryDefaultImages: Record<string, string> = {
-  '팬덤': '/images/category/fandom.jpg',
-  '연예·사랑': '/images/category/love.jpg',
-  '방송·채널': '/images/category/channel.jpg',
-  '패션·뷰티': '/images/category/fashion.jpg',
-  '음식·요리': '/images/category/food.jpg',
-  '취미·여행': '/images/category/travel.jpg',
-  '일상·건강': '/images/category/daily.jpg',
-  '사회·문화': '/images/category/culture.jpg',
-  'IT·기술': '/images/category/tech.jpg',
-  '정치': '/images/category/politics.jpg',
-  '경제': '/images/category/economy.jpg',
-  '교육': '/images/category/edu.jpg',
-  '자유주제': '/images/category/free.jpg',
+interface CategoryData {
+  name: string
+  slug: string
+  imagePath: string
+  order: number
 }
-const categories = Object.keys(categoryDefaultImages)
+
+const DEFAULT_IMAGE_URL = '/default-image.png'
 
 export default function EditPollPage() {
   const { id } = useParams()
@@ -66,14 +58,20 @@ export default function EditPollPage() {
   const [mainImageFile, setMainImageFile] = useState<File | null>(null)
   const [options, setOptions] = useState<PollOption[]>([])
   const [category, setCategory] = useState('')
+  const [categories, setCategories] = useState<CategoryData[]>([])
   const [isLocked, setIsLocked] = useState(false)
   const [createdAt, setCreatedAt] = useState('')
   const [loading, setLoading] = useState(true)
 
   const today = format(new Date(), 'yyyy-MM-dd')
   const maxDate = format(addDays(new Date(), 30), 'yyyy-MM-dd')
-
   useEffect(() => {
+    const fetchCategories = async () => {
+      const snapshot = await getDocs(query(collection(db, 'categories'), orderBy('order')))
+      const list = snapshot.docs.map((doc) => doc.data() as CategoryData)
+      setCategories(list)
+    }
+
     const fetchPoll = async () => {
       const docRef = doc(db, 'polls', id as string)
       const snapshot = await getDoc(docRef)
@@ -91,23 +89,26 @@ export default function EditPollPage() {
       setPasswordConfirm(data.password ?? '')
       setDeadline(data.deadline ?? '')
       setMaxParticipants(data.maxParticipants)
-      setMainImageUrl(data.mainImageUrl || categoryDefaultImages[data.category] || DEFAULT_IMAGE_URL)
       setOptions(data.options)
       setCategory(data.category)
-      setCreatedAt(data.createdAt ?? format(new Date(), 'yyyy-MM-dd'))
+      setCreatedAt(format(new Date(), 'yyyy-MM-dd'))
       setIsLocked((data.votedUsers?.length ?? 0) > 0)
+
+      const matchedCategory = categories.find(c => c.name === data.category)
+      const imageFromCategory = matchedCategory?.imagePath ?? DEFAULT_IMAGE_URL
+      setMainImageUrl(data.mainImageUrl || imageFromCategory)
       setLoading(false)
     }
 
-    fetchPoll()
+    fetchCategories().then(fetchPoll)
   }, [id, router])
 
   useEffect(() => {
     if (!mainImageFile) {
-      const fallback = categoryDefaultImages[category] || DEFAULT_IMAGE_URL
+      const fallback = categories.find(c => c.name === category)?.imagePath || DEFAULT_IMAGE_URL
       setMainImageUrl(`${fallback}?t=${Date.now()}`)
     }
-  }, [category, mainImageFile])
+  }, [category, mainImageFile, categories])
 
   if (loading) return <div className="p-6">로딩 중...</div>
   return (
@@ -179,7 +180,7 @@ export default function EditPollPage() {
             className="w-full border rounded px-3 py-2"
           >
             {categories.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c.slug} value={c.name}>{c.name}</option>
             ))}
           </select>
         </div>
@@ -211,17 +212,11 @@ export default function EditPollPage() {
               {!isLocked && (
                 <button
                   onClick={async () => {
-                    try {
-                      if (mainImageUrl !== DEFAULT_IMAGE_URL) {
-                        const refPath = `polls/main/${id}`
-                        await deleteObject(ref(storage, refPath))
-                      }
-                      setMainImageUrl(`${DEFAULT_IMAGE_URL}?t=${Date.now()}`)
-                      toast.success('대표 이미지 삭제 완료')
-                    } catch (err) {
-                      console.error(err)
-                      toast.error('대표 이미지 삭제 실패')
-                    }
+                    const refPath = `polls/main/${id}`
+                    await deleteObject(ref(storage, refPath)).catch(() => {})
+                    const fallback = categories.find(c => c.name === category)?.imagePath || DEFAULT_IMAGE_URL
+                    setMainImageUrl(`${fallback}?t=${Date.now()}`)
+                    toast.success('대표 이미지 삭제 완료')
                   }}
                   className="text-sm text-red-500 hover:underline mt-1 ml-2"
                 >

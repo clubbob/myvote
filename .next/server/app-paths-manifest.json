@@ -1,8 +1,9 @@
 {
-  "/mypage/page": "app/mypage/page.js",
   "/page": "app/page.js",
-  "/mypage/polls/[id]/edit/page": "app/mypage/polls/[id]/edit/page.js",
+  "/mypage/page": "app/mypage/page.js",
   "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/mypage/polls/[id]/edit/page": "app/mypage/polls/[id]/edit/page.js",
   "/admin/polls/page": "app/admin/polls/page.js",
-  "/admin/polls/[id]/edit/page": "app/admin/polls/[id]/edit/page.js"
+  "/admin/polls/[id]/edit/page": "app/admin/polls/[id]/edit/page.js",
+  "/admin/polls/[id]/page": "app/admin/polls/[id]/page.js"
 }

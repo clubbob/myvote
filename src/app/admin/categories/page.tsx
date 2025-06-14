@@ -112,6 +112,7 @@ export default function AdminCategoryPage() {
     setCategories(updated)
     setIsDirty(true)
   }
+
   const handleSaveOrder = async () => {
     try {
       const batch = writeBatch(db)
@@ -250,7 +251,12 @@ export default function AdminCategoryPage() {
                                 수정
                               </button>
                               <button
-                                onClick={() => handleDelete(cat.id)}
+                                onClick={() => {
+                                  const ok = confirm('정말 이 카테고리를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')
+                                  if (ok) {
+                                    handleDelete(cat.id)
+                                  }
+                                }}
                                 className="text-red-500 hover:underline"
                               >
                                 삭제
@@ -280,4 +286,5 @@ export default function AdminCategoryPage() {
     </div>
   )
 }
+
 

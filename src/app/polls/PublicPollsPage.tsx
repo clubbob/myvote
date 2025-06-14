@@ -11,6 +11,7 @@ import {
 import { db } from '@/lib/firebase'
 import { format, differenceInCalendarDays } from 'date-fns'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 
 interface Poll {
   id: string
@@ -204,26 +205,28 @@ export default function PublicPollsPage() {
                   : null
 
                 return (
-                  <li
-                    key={poll.id}
-                    className="bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition"
-                  >
-                    <h2 className="text-lg font-semibold mb-2 text-gray-900 break-words whitespace-normal">
-                      {poll.title}
-                    </h2>
-                    <div className="text-sm text-gray-700 space-y-1">
-                      <p>📂 <strong>카테고리:</strong> {poll.category}</p>
-                      <p>🛠 <strong>제작일:</strong> {format(createdDate, 'yyyy. M. d.')}</p>
-                      {deadlineDate && (
+                  <li key={poll.id}>
+                    <Link
+                      href={`/polls/${poll.id}`}
+                      className="block bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition"
+                    >
+                      <h2 className="text-lg font-semibold mb-2 text-gray-900 break-words whitespace-normal">
+                        {poll.title}
+                      </h2>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        <p>📂 <strong>카테고리:</strong> {poll.category}</p>
+                        <p>🛠 <strong>제작일:</strong> {format(createdDate, 'yyyy. M. d.')}</p>
+                        {deadlineDate && (
+                          <p>
+                            ⏰ <strong>마감일:</strong> {format(deadlineDate, 'yyyy. M. d.')} (D-{dday})
+                          </p>
+                        )}
                         <p>
-                          ⏰ <strong>마감일:</strong> {format(deadlineDate, 'yyyy. M. d.')} (D-{dday})
+                          👥 <strong>참여제한:</strong>{' '}
+                          {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}
                         </p>
-                      )}
-                      <p>
-                        👥 <strong>참여제한:</strong>{' '}
-                        {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}
-                      </p>
-                    </div>
+                      </div>
+                    </Link>
                   </li>
                 )
               })}
@@ -262,4 +265,5 @@ export default function PublicPollsPage() {
     </div>
   )
 }
+
 

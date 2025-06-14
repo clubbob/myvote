@@ -26,10 +26,23 @@ export default function MyPage() {
   const { user } = useAuthStore()
   const [myPolls, setMyPolls] = useState<Poll[]>([])
   const [votedPolls, setVotedPolls] = useState<Poll[]>([])
+
+  const [categories, setCategories] = useState<{ name: string; slug: string }[]>([])
+
   const [myFilter, setMyFilter] = useState<FilterType>('active')
   const [votedFilter, setVotedFilter] = useState<FilterType>('active')
+
+  const [mySearchInput, setMySearchInput] = useState('')
+  const [mySelectedCategory, setMySelectedCategory] = useState('')
+  const [myFilteredPolls, setMyFilteredPolls] = useState<Poll[]>([])
   const [visibleMyCount, setVisibleMyCount] = useState(9)
+
+  const [votedSearchInput, setVotedSearchInput] = useState('')
+  const [votedSelectedCategory, setVotedSelectedCategory] = useState('')
+  const [votedFilteredPolls, setVotedFilteredPolls] = useState<Poll[]>([])
   const [visibleVotedCount, setVisibleVotedCount] = useState(9)
+
+  const now = new Date()
 
   useEffect(() => {
     if (!user) return
@@ -43,6 +56,7 @@ export default function MyPage() {
       const createdSnap = await getDocs(createdQ)
       const myList = createdSnap.docs.map(doc => formatPoll(doc.id, doc.data()))
       setMyPolls(myList)
+      setMyFilteredPolls(myList)
 
       const votedQ = query(
         collection(db, 'polls'),
@@ -52,9 +66,17 @@ export default function MyPage() {
       const votedSnap = await getDocs(votedQ)
       const votedList = votedSnap.docs.map(doc => formatPoll(doc.id, doc.data()))
       setVotedPolls(votedList)
+      setVotedFilteredPolls(votedList)
+    }
+
+    const fetchCategories = async () => {
+      const snapshot = await getDocs(query(collection(db, 'categories'), orderBy('order', 'asc')))
+      const data = snapshot.docs.map(doc => doc.data() as { name: string; slug: string })
+      setCategories(data)
     }
 
     fetchPolls()
+    fetchCategories()
   }, [user])
 
   const formatPoll = (id: string, data: any): Poll => {
@@ -83,17 +105,6 @@ export default function MyPage() {
       password: data.password ?? '',
     }
   }
-  const handleCopy = (poll: Poll) => {
-    const url = `${window.location.origin}/polls/${poll.id}`
-    const text = poll.isPublic
-      ? `📊 MyVote 투표에 참여해보세요!\n${url}`
-      : `📊 MyVote 투표에 참여해보세요!\n${url}\n비밀번호: ${poll.password || ''}`
-
-    navigator.clipboard.writeText(text)
-    toast.success('복사되었습니다!')
-  }
-
-  const now = new Date()
 
   const filterPolls = (polls: Poll[], filter: FilterType) =>
     polls.filter((poll) => {
@@ -103,6 +114,17 @@ export default function MyPage() {
         ? deadlineDate >= now
         : deadlineDate < now
     })
+
+  const handleMySearch = () => {
+    const result = myPolls.filter(p => {
+      const titleMatch = p.title.toLowerCase().includes(mySearchInput.toLowerCase())
+      const categoryMatch = mySelectedCategory ? p.category === mySelectedCategory : true
+      const deadlineMatch = filterPolls([p], myFilter).length > 0
+      return titleMatch && categoryMatch && deadlineMatch
+    })
+    setMyFilteredPolls(result)
+    setVisibleMyCount(9)
+  }
 
   const renderPollList = (polls: Poll[], visibleCount: number, isMine: boolean) =>
     polls.length === 0 ? (
@@ -162,7 +184,14 @@ export default function MyPage() {
                   </Link>
                 )}
                 <button
-                  onClick={() => handleCopy(poll)}
+                  onClick={() => {
+                    const url = `${window.location.origin}/polls/${poll.id}`
+                    const text = poll.isPublic
+                      ? `📊 MyVote 투표에 참여해보세요!\n${url}`
+                      : `📊 MyVote 투표에 참여해보세요!\n${url}\n비밀번호: ${poll.password || ''}`
+                    navigator.clipboard.writeText(text)
+                    toast.success('복사되었습니다!')
+                  }}
                   className="bg-purple-600 text-white px-4 py-1.5 text-sm rounded-full hover:bg-purple-700 transition"
                 >
                   📎 링크 복사
@@ -173,65 +202,139 @@ export default function MyPage() {
         })}
       </ul>
     )
-
-  return (
-    <div className="bg-gray-50 py-10 min-h-screen">
-      <div className="max-w-6xl mx-auto px-6">
-        <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">📋 내가 만든 투표</h1>
-        <div className="flex gap-4 mb-6">
-          <button
-            className={`px-3 py-1 rounded-full ${myFilter === 'active' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
-            onClick={() => setMyFilter('active')}
-          >
-            진행중
-          </button>
-          <button
-            className={`px-3 py-1 rounded-full ${myFilter === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
-            onClick={() => setMyFilter('closed')}
-          >
-            마감됨
-          </button>
-        </div>
-        {renderPollList(filterPolls(myPolls, myFilter), visibleMyCount, true)}
-        {filterPolls(myPolls, myFilter).length > visibleMyCount && (
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setVisibleMyCount((prev) => prev + 9)}
-              className="text-sm px-4 py-2 bg-gray-200 rounded-full hover:bg-gray-300"
+    const handleVotedSearch = () => {
+      const result = votedPolls.filter(p => {
+        const titleMatch = p.title.toLowerCase().includes(votedSearchInput.toLowerCase())
+        const categoryMatch = votedSelectedCategory ? p.category === votedSelectedCategory : true
+        const deadlineMatch = filterPolls([p], votedFilter).length > 0
+        return titleMatch && categoryMatch && deadlineMatch
+      })
+      setVotedFilteredPolls(result)
+      setVisibleVotedCount(9)
+    }
+  
+    return (
+      <div className="bg-gray-50 py-10 min-h-screen">
+        <div className="max-w-6xl mx-auto px-6">
+          {/* 내가 만든 투표 섹션 */}
+          <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">📋 내가 만든 투표</h1>
+  
+          {/* 검색 UI */}
+          <div className="flex flex-wrap gap-3 mb-4 items-center">
+            <input
+              type="text"
+              placeholder="제목 검색"
+              value={mySearchInput}
+              onChange={(e) => setMySearchInput(e.target.value)}
+              className="flex-1 min-w-[200px] max-w-md px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            />
+            <select
+              value={mySelectedCategory}
+              onChange={(e) => setMySelectedCategory(e.target.value)}
+              className="px-3 py-2 border rounded-full"
             >
-              더 보기
+              <option value="">전체 카테고리</option>
+              {categories.map(c => (
+                <option key={c.slug} value={c.slug}>{c.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleMySearch}
+              className="px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700"
+            >
+              검색
             </button>
           </div>
-        )}
-
-        <h1 className="text-3xl font-bold mt-12 mb-4 flex items-center gap-2">🗳️ 내가 참여한 투표</h1>
-        <div className="flex gap-4 mb-6">
-          <button
-            className={`px-3 py-1 rounded-full ${votedFilter === 'active' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
-            onClick={() => setVotedFilter('active')}
-          >
-            진행중
-          </button>
-          <button
-            className={`px-3 py-1 rounded-full ${votedFilter === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
-            onClick={() => setVotedFilter('closed')}
-          >
-            마감됨
-          </button>
-        </div>
-        {renderPollList(filterPolls(votedPolls, votedFilter), visibleVotedCount, false)}
-        {filterPolls(votedPolls, votedFilter).length > visibleVotedCount && (
-          <div className="mt-6 text-center">
+  
+          {/* 진행중/마감됨 필터 */}
+          <div className="flex gap-4 mb-6">
             <button
-              onClick={() => setVisibleVotedCount((prev) => prev + 9)}
-              className="text-sm px-4 py-2 bg-gray-200 rounded-full hover:bg-gray-300"
+              className={`px-3 py-1 rounded-full ${myFilter === 'active' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+              onClick={() => setMyFilter('active')}
             >
-              더 보기
+              진행중
+            </button>
+            <button
+              className={`px-3 py-1 rounded-full ${myFilter === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+              onClick={() => setMyFilter('closed')}
+            >
+              마감됨
             </button>
           </div>
-        )}
+  
+          {renderPollList(myFilteredPolls.filter(p => filterPolls([p], myFilter).length > 0), visibleMyCount, true)}
+  
+          {myFilteredPolls.filter(p => filterPolls([p], myFilter).length > 0).length > visibleMyCount && (
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => setVisibleMyCount(prev => prev + 9)}
+                className="text-sm px-4 py-2 bg-gray-200 rounded-full hover:bg-gray-300"
+              >
+                더 보기
+              </button>
+            </div>
+          )}
+  
+          {/* 내가 참여한 투표 섹션 */}
+          <h1 className="text-3xl font-bold mt-12 mb-4 flex items-center gap-2">🗳️ 내가 참여한 투표</h1>
+  
+          {/* 검색 UI */}
+          <div className="flex flex-wrap gap-3 mb-4 items-center">
+            <input
+              type="text"
+              placeholder="제목 검색"
+              value={votedSearchInput}
+              onChange={(e) => setVotedSearchInput(e.target.value)}
+              className="flex-1 min-w-[200px] max-w-md px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            />
+            <select
+              value={votedSelectedCategory}
+              onChange={(e) => setVotedSelectedCategory(e.target.value)}
+              className="px-3 py-2 border rounded-full"
+            >
+              <option value="">전체 카테고리</option>
+              {categories.map(c => (
+                <option key={c.slug} value={c.slug}>{c.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleVotedSearch}
+              className="px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700"
+            >
+              검색
+            </button>
+          </div>
+  
+          {/* 진행중/마감됨 필터 */}
+          <div className="flex gap-4 mb-6">
+            <button
+              className={`px-3 py-1 rounded-full ${votedFilter === 'active' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+              onClick={() => setVotedFilter('active')}
+            >
+              진행중
+            </button>
+            <button
+              className={`px-3 py-1 rounded-full ${votedFilter === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+              onClick={() => setVotedFilter('closed')}
+            >
+              마감됨
+            </button>
+          </div>
+  
+          {renderPollList(votedFilteredPolls.filter(p => filterPolls([p], votedFilter).length > 0), visibleVotedCount, false)}
+  
+          {votedFilteredPolls.filter(p => filterPolls([p], votedFilter).length > 0).length > visibleVotedCount && (
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => setVisibleVotedCount(prev => prev + 9)}
+                className="text-sm px-4 py-2 bg-gray-200 rounded-full hover:bg-gray-300"
+              >
+                더 보기
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  )
-}
-
+    )
+  }
+  

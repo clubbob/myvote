@@ -4,8 +4,9 @@ import './globals.css'
 import Link from 'next/link'
 import { ReactNode, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
-import { auth } from '@/lib/firebase'
+import { auth, db } from '@/lib/firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
 import { useRouter, usePathname } from 'next/navigation'
 import { Toaster } from 'sonner'
 
@@ -19,10 +20,35 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const isAdminPage = pathname.startsWith('/admin')
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser)
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+          const userData = userDoc.exists() ? userDoc.data() : {}
+
+          // ✅ 닉네임 누락 시 로그인 거부 처리
+          if (!userData.nickname) {
+            console.warn('닉네임 없음 - userData:', userData)
+            setUser(null)
+            setLoading(false)
+            return
+          }
+
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email ?? '',
+            nickname: userData.nickname,
+          })
+        } catch (error) {
+          console.error('사용자 정보 가져오기 실패:', error)
+          setUser(null)
+        }
+      } else {
+        setUser(null)
+      }
       setLoading(false)
     })
+
     return () => unsubscribe()
   }, [setUser, setLoading])
 

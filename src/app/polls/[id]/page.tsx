@@ -22,6 +22,7 @@ import Head from 'next/head'
 import { format, differenceInCalendarDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { toast } from 'sonner'
+import CommentSection from '@/components/comments/CommentSection'
 
 interface PollOption {
   id: string
@@ -46,6 +47,7 @@ interface PollData {
 
 export default function PollDetailPage() {
   const { id } = useParams()
+  console.log('[페이지 디버깅] useParams id:', id)
   const router = useRouter()
   const { user } = useAuthStore()
   const [poll, setPoll] = useState<PollData | null>(null)
@@ -95,6 +97,7 @@ export default function PollDetailPage() {
 
     fetchPoll()
   }, [id, user])
+
   const handleVote = async () => {
     if (!poll || !selectedOptionId) return
 
@@ -281,7 +284,13 @@ export default function PollDetailPage() {
             </div>
           </div>
         )}
+
+        {/* 댓글 섹션 */}
+        <div className="mt-10">
+          <CommentSection pollId={id as string} />
+        </div>
       </div>
     </>
   )
 }
+

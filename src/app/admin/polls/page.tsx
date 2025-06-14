@@ -1,7 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { collection, getDocs, Timestamp } from 'firebase/firestore'
+import {
+  collection,
+  getDocs,
+  Timestamp,
+  orderBy,
+  query,
+} from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import Link from 'next/link'
 import { format, differenceInCalendarDays, isValid } from 'date-fns'
@@ -16,13 +22,26 @@ interface Poll {
   maxParticipants?: number
 }
 
+interface Category {
+  name: string
+  slug: string
+}
+
 export default function AdminPollsPage() {
   const [polls, setPolls] = useState<Poll[]>([])
-  const [filter, setFilter] = useState<'active' | 'closed'>('active')
+  const [categories, setCategories] = useState<Category[]>([])
+
+  const [searchInput, setSearchInput] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'active' | 'closed'>('active')
+
   const [visibleCount, setVisibleCount] = useState(9)
+  const [filteredPolls, setFilteredPolls] = useState<Poll[]>([])
+
+  const now = new Date()
 
   useEffect(() => {
-    const fetchPolls = async () => {
+    const fetchAll = async () => {
       const snapshot = await getDocs(collection(db, 'polls'))
       const pollList = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -36,52 +55,117 @@ export default function AdminPollsPage() {
       })
 
       setPolls(pollList)
+      setFilteredPolls(applyFilter(pollList, '', '', 'active'))
     }
 
-    fetchPolls()
+    const fetchCategories = async () => {
+      const snapshot = await getDocs(
+        query(collection(db, 'categories'), orderBy('order', 'asc'))
+      )
+      const data = snapshot.docs.map(doc => doc.data() as Category)
+      setCategories(data)
+    }
+
+    fetchAll()
+    fetchCategories()
   }, [])
 
-  const now = new Date()
+  const applyFilter = (
+    data: Poll[],
+    keyword: string,
+    category: string,
+    status: 'active' | 'closed'
+  ) => {
+    return data.filter(p => {
+      const titleMatch = p.title.toLowerCase().includes(keyword.toLowerCase())
+      const categoryMatch = category ? p.category === category : true
 
-  const filteredPolls = polls.filter(p => {
-    if (!p.deadline) return filter === 'active'
-    const deadline =
-      typeof p.deadline === 'string'
-        ? new Date(p.deadline)
-        : p.deadline.toDate()
-    return filter === 'active' ? deadline > now : deadline <= now
-  })
+      const deadlineDate =
+        typeof p.deadline === 'string'
+          ? new Date(p.deadline)
+          : p.deadline instanceof Timestamp
+            ? p.deadline.toDate()
+            : null
+
+      const deadlineValid = deadlineDate
+        ? status === 'active'
+          ? deadlineDate > now
+          : deadlineDate <= now
+        : status === 'active'
+
+      return titleMatch && categoryMatch && deadlineValid
+    })
+  }
+
+  const handleSearch = () => {
+    const result = applyFilter(polls, searchInput, selectedCategory, filterStatus)
+    setFilteredPolls(result)
+    setVisibleCount(9)
+  }
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold text-purple-700 mb-6">📊 투표 목록</h1>
 
-      {/* 필터 탭 */}
+      {/* 🔍 검색 입력 + 카테고리 + 버튼 */}
+      <div className="flex flex-wrap gap-3 items-center mb-6">
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="제목으로 검색"
+          className="flex-1 min-w-[200px] max-w-md px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+        />
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="px-3 py-2 border rounded-full"
+        >
+          <option value="">전체 카테고리</option>
+          {categories.map((c) => (
+            <option key={c.slug} value={c.slug}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={handleSearch}
+          className="px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700"
+        >
+          검색
+        </button>
+      </div>
+
+      {/* 🔘 진행중 / 마감됨 필터 */}
       <div className="flex gap-3 mb-6">
         <button
           onClick={() => {
-            setFilter('active')
+            setFilterStatus('active')
             setVisibleCount(9)
+            const result = applyFilter(polls, searchInput, selectedCategory, 'active')
+            setFilteredPolls(result)
           }}
           className={`px-4 py-1 rounded-full text-sm ${
-            filter === 'active' ? 'bg-gray-800 text-white' : 'bg-gray-200'
+            filterStatus === 'active' ? 'bg-gray-800 text-white' : 'bg-gray-200'
           }`}
         >
           진행중
         </button>
         <button
           onClick={() => {
-            setFilter('closed')
+            setFilterStatus('closed')
             setVisibleCount(9)
+            const result = applyFilter(polls, searchInput, selectedCategory, 'closed')
+            setFilteredPolls(result)
           }}
           className={`px-4 py-1 rounded-full text-sm ${
-            filter === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200'
+            filterStatus === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200'
           }`}
         >
           마감됨
         </button>
       </div>
 
-      {/* 투표 카드 */}
+      {/* 🗳 투표 카드 리스트 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredPolls.slice(0, visibleCount).map((poll) => {
           const createdDate =
@@ -145,7 +229,7 @@ export default function AdminPollsPage() {
         })}
       </div>
 
-      {/* 더 보기 버튼 */}
+      {/* ➕ 더 보기 */}
       {visibleCount < filteredPolls.length && (
         <div className="text-center mt-6">
           <button
@@ -159,4 +243,3 @@ export default function AdminPollsPage() {
     </div>
   )
 }
-

@@ -1,11 +1,16 @@
 // src/stores/authStore.ts
 import { create } from 'zustand'
-import { User } from 'firebase/auth'
+
+interface CustomUser {
+  uid: string
+  email: string | null
+  nickname: string
+}
 
 interface AuthState {
-  user: User | null
+  user: CustomUser | null
   loading: boolean
-  setUser: (user: User | null) => void
+  setUser: (user: CustomUser | null) => void
   setLoading: (loading: boolean) => void
 }
 

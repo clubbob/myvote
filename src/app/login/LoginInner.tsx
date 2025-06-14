@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth, db } from '@/lib/firebase'
-import { setDoc, doc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { useAuthStore } from '@/stores/authStore'
 
 function getFirebaseLoginError(code: string): string {
   switch (code) {
@@ -29,6 +30,8 @@ export default function LoginInner() {
   const [form, setForm] = useState({ email: '', password: '', rememberEmail: true })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const { setUser: setUserInStore } = useAuthStore()
 
   useEffect(() => {
     const savedEmail = localStorage.getItem('rememberedEmail')
@@ -60,6 +63,19 @@ export default function LoginInner() {
         return
       }
 
+      // Firestore에서 닉네임 불러오기
+      const userDoc = await getDoc(doc(db, 'users', user.uid))
+      const userData = userDoc.exists() ? userDoc.data() : {}
+      const nickname = userData.nickname || ''
+
+      // Zustand에 사용자 정보 저장 (명확히 타입 맞춰서)
+      setUserInStore({
+        uid: user.uid,
+        email: user.email,
+        nickname,
+      })
+
+      // 마지막 로그인 시간 기록
       await setDoc(
         doc(db, 'users', user.uid),
         { lastLoginAt: serverTimestamp() },
@@ -153,3 +169,4 @@ export default function LoginInner() {
     </div>
   )
 }
+

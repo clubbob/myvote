@@ -56,7 +56,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </>
               ) : (
                 <>
-                  <Link href="/polls" className="hover:underline">전체 투표</Link>
+                  <button
+                    onClick={() => router.push('/polls?reset=1')}
+                    className="hover:underline"
+                  >
+                    전체 투표
+                  </button>
                   <Link href="/create" className="hover:underline">투표 만들기</Link>
                   <Link href="/mypage" className="hover:underline">마이페이지</Link>
                   <button onClick={handleLogout} className="hover:underline">로그아웃</button>
@@ -87,5 +92,3 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   )
 }
-
-

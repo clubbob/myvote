@@ -1,22 +1,16 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import {
   collection,
-  query,
-  where,
-  orderBy,
-  limit,
   getDocs,
-  startAfter,
+  orderBy,
+  query,
   Timestamp,
-  QueryDocumentSnapshot,
-  DocumentData,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { useAuthStore } from '@/stores/authStore'
-import { useRouter } from 'next/navigation'
 import { format, differenceInCalendarDays } from 'date-fns'
+import { useSearchParams } from 'next/navigation'
 
 interface Poll {
   id: string
@@ -28,87 +22,183 @@ interface Poll {
   isPublic: boolean
 }
 
-export default function PublicPollsPage() {
-  const [polls, setPolls] = useState<Poll[]>([])
-  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null)
-  const [hasMore, setHasMore] = useState(true)
-  const [isLoading, setIsLoading] = useState(false)
+interface Category {
+  name: string
+  slug: string
+}
 
-  const hasFetchedRef = useRef(false)
-  const { user } = useAuthStore()
-  const router = useRouter()
+type FilterStatus = 'active' | 'closed'
+
+export default function PublicPollsPage() {
+  const [allPolls, setAllPolls] = useState<Poll[]>([])
+  const [displayedPolls, setDisplayedPolls] = useState<Poll[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [searchInput, setSearchInput] = useState('')
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [searchCategory, setSearchCategory] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('active')
+  const [visibleCount, setVisibleCount] = useState(9)
+  const now = new Date()
+
+  const searchParams = useSearchParams()
 
   useEffect(() => {
-    if (!hasFetchedRef.current) {
-      fetchPolls()
-      hasFetchedRef.current = true
+    const fetchPolls = async () => {
+      const snapshot = await getDocs(
+        query(collection(db, 'polls'), orderBy('createdAt', 'desc'))
+      )
+      const fetchedPolls = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Poll))
+        .filter(p => p.isPublic)
+
+      setAllPolls(fetchedPolls)
+      setDisplayedPolls(filterAndSlice(fetchedPolls, '', '', 'active', 9))
     }
+
+    const fetchCategories = async () => {
+      const snapshot = await getDocs(
+        query(collection(db, 'categories'), orderBy('order', 'asc'))
+      )
+      const data = snapshot.docs.map(doc => doc.data() as Category)
+      setCategories(data)
+    }
+
+    fetchPolls()
+    fetchCategories()
   }, [])
 
-  const fetchPolls = async () => {
-    setIsLoading(true)
+  // 🔄 reset=1 쿼리 파라미터 감지 시 초기화
+  useEffect(() => {
+    if (searchParams.get('reset') === '1') {
+      setSearchInput('')
+      setSearchKeyword('')
+      setSelectedCategory('')
+      setSearchCategory('')
+      setFilterStatus('active')
+      setVisibleCount(9)
 
-    const baseQuery = query(
-      collection(db, 'polls'),
-      where('isPublic', '==', true),
-      orderBy('createdAt', 'desc'),
-      limit(9) // ✅ 9개씩 로드
-    )
-
-    const q = lastDoc ? query(baseQuery, startAfter(lastDoc)) : baseQuery
-    const snapshot = await getDocs(q)
-
-    if (snapshot.empty) {
-      setHasMore(false)
-      setIsLoading(false)
-      return
+      const filtered = filterAndSlice(allPolls, '', '', 'active', 9)
+      setDisplayedPolls(filtered)
     }
+  }, [searchParams, allPolls])
 
-    const newPolls = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Poll[]
+  const filterAndSlice = (
+    polls: Poll[],
+    keyword: string,
+    category: string,
+    status: FilterStatus,
+    count: number
+  ): Poll[] => {
+    return polls
+      .filter(p => {
+        const titleMatch = p.title.toLowerCase().includes(keyword.toLowerCase())
+        const categoryMatch = category ? p.category === category : true
 
-    setPolls(prev => [...prev, ...newPolls])
-    setLastDoc(snapshot.docs[snapshot.docs.length - 1])
-    if (snapshot.docs.length < 9) setHasMore(false)
+        let deadlineValid = true
+        if (p.deadline) {
+          const d = p.deadline instanceof Timestamp
+            ? p.deadline.toDate()
+            : new Date(p.deadline)
+          deadlineValid = status === 'active' ? d >= now : d < now
+        }
 
-    setIsLoading(false)
+        return titleMatch && categoryMatch && deadlineValid
+      })
+      .slice(0, count)
   }
 
-  const handleClick = (pollId: string) => {
-    if (!user) {
-      alert('로그인 후 투표 내용을 확인할 수 있어요!')
-      router.push('/login')
-      return
-    }
+  const handleSearch = () => {
+    setSearchKeyword(searchInput)
+    setSearchCategory(selectedCategory)
+    setVisibleCount(9)
 
-    router.push(`/polls/${pollId}`)
+    const filtered = filterAndSlice(allPolls, searchInput, selectedCategory, filterStatus, 9)
+    setDisplayedPolls(filtered)
+  }
+
+  const handleLoadMore = () => {
+    const nextCount = visibleCount + 9
+    setVisibleCount(nextCount)
+
+    const filtered = filterAndSlice(allPolls, searchKeyword, searchCategory, filterStatus, nextCount)
+    setDisplayedPolls(filtered)
+  }
+
+  const handleStatusChange = (status: FilterStatus) => {
+    setFilterStatus(status)
+    setVisibleCount(9)
+
+    const filtered = filterAndSlice(allPolls, searchKeyword, searchCategory, status, 9)
+    setDisplayedPolls(filtered)
   }
 
   return (
     <div className="bg-gray-50 py-10 min-h-screen">
       <div className="max-w-6xl mx-auto px-6">
-        <h1 className="text-3xl font-bold text-purple-700 mb-8 flex items-center gap-2">
-          🗳️ 전체 공개 투표
-        </h1>
+        <h1 className="text-3xl font-bold text-purple-700 mb-4">🗳️ 전체 공개 투표</h1>
 
-        {polls.length === 0 ? (
-          <p className="text-gray-500">공개된 투표가 없습니다.</p>
+        {/* 🔍 검색 + 카테고리 + 버튼 */}
+        <div className="mb-6 flex flex-wrap gap-3 items-center">
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="제목으로 검색"
+            className="flex-1 min-w-[200px] max-w-md px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+          />
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-3 py-2 border rounded-full"
+          >
+            <option value="">전체 카테고리</option>
+            {categories.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={handleSearch}
+            className="px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700"
+          >
+            검색
+          </button>
+        </div>
+
+        {/* 🔘 진행중 / 마감됨 필터 */}
+        <div className="flex gap-4 mb-6">
+          <button
+            onClick={() => handleStatusChange('active')}
+            className={`px-4 py-1 rounded-full ${filterStatus === 'active' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+          >
+            진행중
+          </button>
+          <button
+            onClick={() => handleStatusChange('closed')}
+            className={`px-4 py-1 rounded-full ${filterStatus === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+          >
+            마감됨
+          </button>
+        </div>
+
+        {displayedPolls.length === 0 ? (
+          <p className="text-gray-500">조건에 맞는 투표가 없습니다.</p>
         ) : (
           <>
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {polls.map((poll) => {
-                const createdDate = typeof poll.createdAt === 'string'
-                  ? new Date(poll.createdAt)
-                  : poll.createdAt.toDate()
+              {displayedPolls.map((poll) => {
+                const createdDate =
+                  typeof poll.createdAt === 'string'
+                    ? new Date(poll.createdAt)
+                    : poll.createdAt.toDate()
 
-                let deadlineDate: Date | null = null
-                if (poll.deadline instanceof Timestamp) {
-                  deadlineDate = poll.deadline.toDate()
-                } else if (typeof poll.deadline === 'string') {
-                  deadlineDate = new Date(poll.deadline)
-                }
+                const deadlineDate = poll.deadline
+                  ? poll.deadline instanceof Timestamp
+                    ? poll.deadline.toDate()
+                    : new Date(poll.deadline)
+                  : null
 
                 const dday = deadlineDate
                   ? differenceInCalendarDays(deadlineDate, new Date())
@@ -117,14 +207,13 @@ export default function PublicPollsPage() {
                 return (
                   <li
                     key={poll.id}
-                    className="bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition cursor-pointer"
-                    onClick={() => handleClick(poll.id)}
+                    className="bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition"
                   >
-                    <h2 className="text-lg font-semibold text-gray-900 mb-2 break-words whitespace-normal text-left">
+                    <h2 className="text-lg font-semibold mb-2 text-gray-900 break-words whitespace-normal">
                       {poll.title}
                     </h2>
                     <div className="text-sm text-gray-700 space-y-1">
-                      <p>📁 <strong>카테고리:</strong> {poll.category}</p>
+                      <p>📂 <strong>카테고리:</strong> {poll.category}</p>
                       <p>🛠 <strong>제작일:</strong> {format(createdDate, 'yyyy. M. d.')}</p>
                       {deadlineDate && (
                         <p>
@@ -141,14 +230,30 @@ export default function PublicPollsPage() {
               })}
             </ul>
 
-            {hasMore && (
+            {/* ➕ 더 보기 버튼 */}
+            {displayedPolls.length < allPolls.filter((poll) => {
+              const titleMatch = poll.title.toLowerCase().includes(searchKeyword.toLowerCase())
+              const categoryMatch = searchCategory ? poll.category === searchCategory : true
+
+              let isDeadlineValid = true
+              if (poll.deadline) {
+                const deadlineDate = poll.deadline instanceof Timestamp
+                  ? poll.deadline.toDate()
+                  : new Date(poll.deadline)
+                isDeadlineValid =
+                  filterStatus === 'active'
+                    ? deadlineDate >= now
+                    : deadlineDate < now
+              }
+
+              return titleMatch && categoryMatch && isDeadlineValid
+            }).length && (
               <div className="text-center mt-8">
                 <button
-                  onClick={fetchPolls}
-                  disabled={isLoading}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 disabled:opacity-50"
+                  onClick={handleLoadMore}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700"
                 >
-                  {isLoading ? '불러오는 중...' : '더 보기'}
+                  더 보기
                 </button>
               </div>
             )}
@@ -158,6 +263,3 @@ export default function PublicPollsPage() {
     </div>
   )
 }
-
-
-

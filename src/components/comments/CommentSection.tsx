@@ -58,7 +58,7 @@ export default function CommentSection({ pollId }: { pollId: string }) {
             updatedAt: data.updatedAt ?? '',
           }
         })
-        .filter((c): c is Comment => c !== null)
+        .filter((c) => c !== null)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // 최신순
 
       setComments(list)
@@ -140,6 +140,3 @@ export default function CommentSection({ pollId }: { pollId: string }) {
     </div>
   )
 }
-
-
-

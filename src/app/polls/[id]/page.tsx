@@ -13,6 +13,7 @@ import {
   orderBy,
   limit,
   getDocs,
+  addDoc,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/stores/authStore'
@@ -47,7 +48,6 @@ interface PollData {
 
 export default function PollDetailPage() {
   const { id } = useParams()
-  console.log('[페이지 디버깅] useParams id:', id)
   const router = useRouter()
   const { user } = useAuthStore()
   const [poll, setPoll] = useState<PollData | null>(null)
@@ -55,6 +55,7 @@ export default function PollDetailPage() {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [passwordInput, setPasswordInput] = useState('')
   const [passwordVerified, setPasswordVerified] = useState(false)
+  const [voteCount, setVoteCount] = useState(0) // 👈 추가
 
   useEffect(() => {
     const fetchPoll = async () => {
@@ -92,6 +93,10 @@ export default function PollDetailPage() {
         if (isOwner || alreadyVoted) setPasswordVerified(true)
 
         setPoll(data)
+
+        // 👥 참여자 수 계산
+        const totalVotes = data.options.reduce((acc, opt) => acc + (opt.votes?.length || 0), 0)
+        setVoteCount(totalVotes)
       }
     }
 
@@ -121,6 +126,12 @@ export default function PollDetailPage() {
     await updateDoc(docRef, {
       options: updatedOptions,
       votedUsers: arrayUnion(user.uid),
+    })
+
+    await addDoc(collection(db, 'polls', id as string, 'votes'), {
+      uid: user.uid,
+      optionId: selectedOptionId,
+      createdAt: new Date().toISOString(),
     })
 
     setPoll({
@@ -194,9 +205,11 @@ export default function PollDetailPage() {
               ? `${format(new Date(poll.deadline), 'yyyy. M. d.', { locale: ko })} (D-${Math.max(0, differenceInCalendarDays(new Date(poll.deadline), new Date()))})`
               : '마감일 없음'}
           </p>
+          <p>👥 <b>참여자 수:</b> {voteCount}명</p> {/* ✅ 이 줄만 추가 */}
           <p>👥 <b>참여제한:</b> {poll.maxParticipants ?? '제한 없음'}명</p>
         </div>
 
+        {/* 이하 옵션/투표 버튼/댓글 등 그대로 유지 */}
         <div className="space-y-4">
           {poll.options.map((option) => {
             const voteCount = option.votes?.length || 0
@@ -285,7 +298,6 @@ export default function PollDetailPage() {
           </div>
         )}
 
-        {/* 댓글 섹션 */}
         <div className="mt-10">
           <CommentSection pollId={id as string} />
         </div>
@@ -293,4 +305,3 @@ export default function PollDetailPage() {
     </>
   )
 }
-

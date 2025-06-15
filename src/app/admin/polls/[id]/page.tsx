@@ -31,6 +31,7 @@ interface PollData {
 export default function AdminPollDetailPage() {
   const { id } = useParams()
   const [poll, setPoll] = useState<PollData | null>(null)
+  const [voteCount, setVoteCount] = useState(0)
 
   useEffect(() => {
     const fetch = async () => {
@@ -39,6 +40,12 @@ export default function AdminPollDetailPage() {
       if (snap.exists()) {
         const data = snap.data() as PollData
         setPoll(data)
+
+        // 참여자 수 계산: 모든 옵션의 votes 배열 합산
+        const count = data.options?.reduce((acc, option) => {
+          return acc + (option.votes?.length ?? 0)
+        }, 0)
+        setVoteCount(count)
       }
     }
 
@@ -85,6 +92,7 @@ export default function AdminPollDetailPage() {
           <p>⏰ <b>마감일:</b> {format(deadlineDate, 'yyyy. M. d.')} (D-{dday})</p>
         )}
         <p>🔐 <b>공개 여부:</b> {poll.isPublic ? '공개' : '비공개'}</p>
+        <p>👥 <b>참여자 수:</b> {voteCount}명</p>
         <p>👥 <b>참여 제한:</b> {poll.maxParticipants ?? '제한 없음'}명</p>
       </div>
 
@@ -111,6 +119,7 @@ export default function AdminPollDetailPage() {
     </div>
   )
 }
+
 
 
   

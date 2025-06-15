@@ -7,6 +7,7 @@ import {
   Timestamp,
   orderBy,
   query,
+  getCountFromServer,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import Link from 'next/link'
@@ -29,6 +30,7 @@ interface Category {
 
 export default function AdminPollsPage() {
   const [polls, setPolls] = useState<Poll[]>([])
+  const [voteCounts, setVoteCounts] = useState<Record<string, number>>({})
   const [categories, setCategories] = useState<Category[]>([])
 
   const [searchInput, setSearchInput] = useState('')
@@ -56,6 +58,16 @@ export default function AdminPollsPage() {
 
       setPolls(pollList)
       setFilteredPolls(applyFilter(pollList, '', '', 'active'))
+
+      // 🔥 참여자 수 병렬 로딩
+      const voteCountPromises = pollList.map(async (poll) => {
+        const voteRef = collection(db, 'polls', poll.id, 'votes')
+        const snapshot = await getCountFromServer(voteRef)
+        return { id: poll.id, count: snapshot.data().count }
+      })
+      const counts = await Promise.all(voteCountPromises)
+      const countsMap = Object.fromEntries(counts.map(({ id, count }) => [id, count]))
+      setVoteCounts(countsMap)
     }
 
     const fetchCategories = async () => {
@@ -102,6 +114,7 @@ export default function AdminPollsPage() {
     setFilteredPolls(result)
     setVisibleCount(9)
   }
+
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold text-purple-700 mb-6">📊 투표 목록</h1>
@@ -144,9 +157,7 @@ export default function AdminPollsPage() {
             const result = applyFilter(polls, searchInput, selectedCategory, 'active')
             setFilteredPolls(result)
           }}
-          className={`px-4 py-1 rounded-full text-sm ${
-            filterStatus === 'active' ? 'bg-gray-800 text-white' : 'bg-gray-200'
-          }`}
+          className={`px-4 py-1 rounded-full text-sm ${filterStatus === 'active' ? 'bg-gray-800 text-white' : 'bg-gray-200'}`}
         >
           진행중
         </button>
@@ -157,9 +168,7 @@ export default function AdminPollsPage() {
             const result = applyFilter(polls, searchInput, selectedCategory, 'closed')
             setFilteredPolls(result)
           }}
-          className={`px-4 py-1 rounded-full text-sm ${
-            filterStatus === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200'
-          }`}
+          className={`px-4 py-1 rounded-full text-sm ${filterStatus === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}
         >
           마감됨
         </button>
@@ -215,6 +224,9 @@ export default function AdminPollsPage() {
               )}
 
               <p className="text-sm">
+                👥 참여자 수: {voteCounts[poll.id] ?? '로딩 중...'}
+              </p>
+              <p className="text-sm">
                 👥 참여제한: {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}
               </p>
 
@@ -243,3 +255,4 @@ export default function AdminPollsPage() {
     </div>
   )
 }
+

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   collection,
   getDocs,
+  getCountFromServer,
   orderBy,
   query,
   Timestamp,
@@ -34,6 +35,7 @@ export default function PublicPollsPage() {
   const [allPolls, setAllPolls] = useState<Poll[]>([])
   const [displayedPolls, setDisplayedPolls] = useState<Poll[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [voteCounts, setVoteCounts] = useState<Record<string, number>>({})
   const [searchInput, setSearchInput] = useState('')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchCategory, setSearchCategory] = useState('')
@@ -55,6 +57,16 @@ export default function PublicPollsPage() {
 
       setAllPolls(fetchedPolls)
       setDisplayedPolls(filterAndSlice(fetchedPolls, '', '', 'active', 9))
+
+      const voteCountPromises = fetchedPolls.map(async (poll) => {
+        const voteRef = collection(db, 'polls', poll.id, 'votes')
+        const snapshot = await getCountFromServer(voteRef)
+        return { id: poll.id, count: snapshot.data().count }
+      })
+
+      const counts = await Promise.all(voteCountPromises)
+      const countsMap = Object.fromEntries(counts.map(({ id, count }) => [id, count]))
+      setVoteCounts(countsMap)
     }
 
     const fetchCategories = async () => {
@@ -82,7 +94,6 @@ export default function PublicPollsPage() {
       setDisplayedPolls(filtered)
     }
   }, [searchParams, allPolls])
-
   const filterAndSlice = (
     polls: Poll[],
     keyword: string,
@@ -221,6 +232,7 @@ export default function PublicPollsPage() {
                             ⏰ <strong>마감일:</strong> {format(deadlineDate, 'yyyy. M. d.')} (D-{dday})
                           </p>
                         )}
+                        <p>👥 <strong>참여자 수:</strong> {voteCounts[poll.id] ?? '로딩 중...'}</p>
                         <p>
                           👥 <strong>참여제한:</strong>{' '}
                           {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}
@@ -265,5 +277,6 @@ export default function PublicPollsPage() {
     </div>
   )
 }
+
 
 

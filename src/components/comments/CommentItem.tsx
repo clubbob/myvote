@@ -24,44 +24,67 @@ interface Props {
   comment: Comment
   allComments: Comment[]
   pollId: string
+  setComments: React.Dispatch<React.SetStateAction<Comment[]>>
 }
 
-export default function CommentItem({ comment, allComments, pollId }: Props) {
+export default function CommentItem({ comment, allComments, pollId, setComments }: Props) {
   const { user } = useAuthStore()
   const [showReply, setShowReply] = useState(false)
   const [replyText, setReplyText] = useState('')
   const [editMode, setEditMode] = useState(false)
   const [editText, setEditText] = useState(comment.text)
+  const [showAllReplies, setShowAllReplies] = useState(false)
 
-  console.log('[디버깅] 렌더링 댓글:', comment)
+  const replies = allComments
+    .filter((c) => c.parentId === comment.id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
-  const replies = allComments.filter((c) => c.parentId === comment.id)
+  const visibleReplies = showAllReplies ? replies : replies.slice(0, 1)
 
   const handleReply = async () => {
     if (!user || !user.nickname || !replyText.trim()) return
 
-    await addDoc(collection(db, 'comments'), {
+    const newReply = {
       pollId,
       text: replyText.trim(),
       uid: user.uid,
       nickname: user.nickname,
       parentId: comment.id,
       createdAt: new Date().toISOString(),
-    })
+    }
 
-    setReplyText('')
-    setShowReply(false)
+    try {
+      const docRef = await addDoc(collection(db, 'comments'), newReply)
+
+      setComments((prev) => [
+        ...prev,
+        {
+          ...newReply,
+          id: docRef.id,
+          updatedAt: '',
+        },
+      ])
+
+      setReplyText('')
+      setShowReply(false)
+    } catch (err) {
+      console.error('답글 등록 실패:', err)
+    }
   }
 
   const handleUpdate = async () => {
     if (!editText.trim()) return
 
-    await updateDoc(doc(db, 'comments', comment.id), {
-      text: editText.trim(),
-      updatedAt: new Date().toISOString(),
-    })
+    try {
+      await updateDoc(doc(db, 'comments', comment.id), {
+        text: editText.trim(),
+        updatedAt: new Date().toISOString(),
+      })
 
-    setEditMode(false)
+      setEditMode(false)
+    } catch (err) {
+      console.error('댓글 수정 실패:', err)
+    }
   }
 
   return (
@@ -118,11 +141,30 @@ export default function CommentItem({ comment, allComments, pollId }: Props) {
 
       {/* 답글 */}
       <div className="mt-2">
-        {replies.map((reply) => (
+        {visibleReplies.map((reply) => (
           <div key={reply.id} className="mt-3 ml-4 border-l pl-3">
-            <CommentItem comment={reply} allComments={allComments} pollId={pollId} />
+            <CommentItem
+              comment={reply}
+              allComments={allComments}
+              pollId={pollId}
+              setComments={setComments}
+            />
           </div>
         ))}
+
+        {/* 더보기/접기 버튼 */}
+        {replies.length > 1 && (
+          <div className="ml-4 mt-2">
+            <button
+              onClick={() => setShowAllReplies((prev) => !prev)}
+              className="text-xs text-gray-500 hover:underline"
+            >
+              {showAllReplies
+                ? '🔽 답글 접기'
+                : `↪️ 답글 ${replies.length - 1}개 더보기`}
+            </button>
+          </div>
+        )}
 
         {/* 답글 작성 UI */}
         {user && !comment.parentId && (
@@ -166,5 +208,7 @@ export default function CommentItem({ comment, allComments, pollId }: Props) {
     </div>
   )
 }
+
+
 
 

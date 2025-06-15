@@ -28,6 +28,7 @@ export default function CommentSection({ pollId }: { pollId: string }) {
   const { user } = useAuthStore()
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
+  const [showAllComments, setShowAllComments] = useState(false)
 
   useEffect(() => {
     if (!pollId) return
@@ -35,7 +36,7 @@ export default function CommentSection({ pollId }: { pollId: string }) {
     const q = query(
       collection(db, 'comments'),
       where('pollId', '==', pollId),
-      orderBy('createdAt', 'asc')
+      orderBy('createdAt', 'desc') // ✅ 최신순으로 변경
     )
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -49,7 +50,9 @@ export default function CommentSection({ pollId }: { pollId: string }) {
           parentId: data.parentId ?? null,
           createdAt: (data.createdAt instanceof Timestamp)
             ? data.createdAt.toDate().toISOString()
-            : data.createdAt ?? '',
+            : typeof data.createdAt === 'string'
+              ? data.createdAt
+              : '',
           updatedAt: data.updatedAt ?? '',
         }
       })
@@ -64,19 +67,37 @@ export default function CommentSection({ pollId }: { pollId: string }) {
   const handleSubmit = async () => {
     if (!user || !user.nickname || !newComment.trim()) return
 
-    await addDoc(collection(db, 'comments'), {
+    const newCommentData = {
       pollId,
       text: newComment.trim(),
       uid: user.uid,
       nickname: user.nickname,
       createdAt: new Date().toISOString(),
       parentId: null,
-    })
+    }
 
-    setNewComment('')
+    try {
+      const docRef = await addDoc(collection(db, 'comments'), newCommentData)
+
+      setComments((prev) => [
+        {
+          ...newCommentData,
+          id: docRef.id,
+          updatedAt: '',
+        },
+        ...prev, // ✅ 최신 댓글을 위에 추가
+      ])
+
+      setNewComment('')
+    } catch (err) {
+      console.error('❌ 댓글 등록 실패:', err)
+    }
   }
 
   const topLevelComments = comments.filter((c) => !c.parentId)
+  const visibleComments = showAllComments
+    ? topLevelComments
+    : topLevelComments.slice(0, 2)
 
   return (
     <div className="mt-10">
@@ -103,19 +124,31 @@ export default function CommentSection({ pollId }: { pollId: string }) {
         {topLevelComments.length === 0 && (
           <p className="text-sm text-gray-500">등록된 댓글이 없습니다.</p>
         )}
-        {topLevelComments.map((comment) => (
+        {visibleComments.map((comment) => (
           <CommentItem
             key={comment.id}
             comment={comment}
             allComments={comments}
             pollId={pollId}
+            setComments={setComments}
           />
         ))}
+
+        {/* 댓글 더보기/접기 버튼 */}
+        {topLevelComments.length > 2 && (
+          <button
+            onClick={() => setShowAllComments((prev) => !prev)}
+            className="text-xs text-gray-500 hover:underline mt-2"
+          >
+            {showAllComments
+              ? '🔽 댓글 접기'
+              : `💬 댓글 ${topLevelComments.length - 2}개 더보기`}
+          </button>
+        )}
       </div>
     </div>
   )
 }
-
 
 
 

@@ -6,10 +6,10 @@ import {
   collection,
   query,
   where,
-  orderBy,
   addDoc,
   onSnapshot,
   Timestamp,
+  serverTimestamp,
 } from 'firebase/firestore'
 import { useAuthStore } from '@/stores/authStore'
 import CommentItem from './CommentItem'
@@ -33,31 +33,34 @@ export default function CommentSection({ pollId }: { pollId: string }) {
   useEffect(() => {
     if (!pollId) return
 
-    const q = query(
-      collection(db, 'comments'),
-      where('pollId', '==', pollId),
-      orderBy('createdAt', 'desc') // ✅ 최신순으로 변경
-    )
+    const q = query(collection(db, 'comments'), where('pollId', '==', pollId))
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: Comment[] = snapshot.docs.map((doc) => {
-        const data = doc.data()
-        return {
-          id: doc.id,
-          text: data.text,
-          uid: data.uid,
-          nickname: data.nickname,
-          parentId: data.parentId ?? null,
-          createdAt: (data.createdAt instanceof Timestamp)
-            ? data.createdAt.toDate().toISOString()
-            : typeof data.createdAt === 'string'
+      const list: Comment[] = snapshot.docs
+        .map((doc) => {
+          const data = doc.data()
+          const createdAt =
+            data.createdAt instanceof Timestamp
+              ? data.createdAt.toDate().toISOString()
+              : typeof data.createdAt === 'string'
               ? data.createdAt
-              : '',
-          updatedAt: data.updatedAt ?? '',
-        }
-      })
+              : null
 
-      console.log('🧾 실시간 댓글 수신:', list.length)
+          if (!createdAt) return null
+
+          return {
+            id: doc.id,
+            text: data.text,
+            uid: data.uid,
+            nickname: data.nickname,
+            parentId: data.parentId ?? null,
+            createdAt,
+            updatedAt: data.updatedAt ?? '',
+          }
+        })
+        .filter((c): c is Comment => c !== null)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // 최신순
+
       setComments(list)
     })
 
@@ -67,27 +70,15 @@ export default function CommentSection({ pollId }: { pollId: string }) {
   const handleSubmit = async () => {
     if (!user || !user.nickname || !newComment.trim()) return
 
-    const newCommentData = {
-      pollId,
-      text: newComment.trim(),
-      uid: user.uid,
-      nickname: user.nickname,
-      createdAt: new Date().toISOString(),
-      parentId: null,
-    }
-
     try {
-      const docRef = await addDoc(collection(db, 'comments'), newCommentData)
-
-      setComments((prev) => [
-        {
-          ...newCommentData,
-          id: docRef.id,
-          updatedAt: '',
-        },
-        ...prev, // ✅ 최신 댓글을 위에 추가
-      ])
-
+      await addDoc(collection(db, 'comments'), {
+        pollId,
+        text: newComment.trim(),
+        uid: user.uid,
+        nickname: user.nickname,
+        createdAt: serverTimestamp(),
+        parentId: null,
+      })
       setNewComment('')
     } catch (err) {
       console.error('❌ 댓글 등록 실패:', err)
@@ -95,7 +86,7 @@ export default function CommentSection({ pollId }: { pollId: string }) {
   }
 
   const topLevelComments = comments.filter((c) => !c.parentId)
-  const visibleComments = showAllComments
+  const visibleTopLevelComments = showAllComments
     ? topLevelComments
     : topLevelComments.slice(0, 2)
 
@@ -124,7 +115,7 @@ export default function CommentSection({ pollId }: { pollId: string }) {
         {topLevelComments.length === 0 && (
           <p className="text-sm text-gray-500">등록된 댓글이 없습니다.</p>
         )}
-        {visibleComments.map((comment) => (
+        {visibleTopLevelComments.map((comment) => (
           <CommentItem
             key={comment.id}
             comment={comment}
@@ -134,7 +125,7 @@ export default function CommentSection({ pollId }: { pollId: string }) {
           />
         ))}
 
-        {/* 댓글 더보기/접기 버튼 */}
+        {/* 더보기 / 접기 */}
         {topLevelComments.length > 2 && (
           <button
             onClick={() => setShowAllComments((prev) => !prev)}
@@ -149,11 +140,6 @@ export default function CommentSection({ pollId }: { pollId: string }) {
     </div>
   )
 }
-
-
-
-
-
 
 
 

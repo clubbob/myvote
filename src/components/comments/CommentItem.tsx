@@ -7,6 +7,7 @@ import {
   addDoc,
   updateDoc,
   doc,
+  serverTimestamp,
 } from 'firebase/firestore'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -37,33 +38,22 @@ export default function CommentItem({ comment, allComments, pollId, setComments 
 
   const replies = allComments
     .filter((c) => c.parentId === comment.id)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // 최신순
 
   const visibleReplies = showAllReplies ? replies : replies.slice(0, 1)
 
   const handleReply = async () => {
     if (!user || !user.nickname || !replyText.trim()) return
 
-    const newReply = {
-      pollId,
-      text: replyText.trim(),
-      uid: user.uid,
-      nickname: user.nickname,
-      parentId: comment.id,
-      createdAt: new Date().toISOString(),
-    }
-
     try {
-      const docRef = await addDoc(collection(db, 'comments'), newReply)
-
-      setComments((prev) => [
-        ...prev,
-        {
-          ...newReply,
-          id: docRef.id,
-          updatedAt: '',
-        },
-      ])
+      await addDoc(collection(db, 'comments'), {
+        pollId,
+        text: replyText.trim(),
+        uid: user.uid,
+        nickname: user.nickname,
+        parentId: comment.id,
+        createdAt: serverTimestamp(),
+      })
 
       setReplyText('')
       setShowReply(false)
@@ -89,7 +79,6 @@ export default function CommentItem({ comment, allComments, pollId, setComments 
 
   return (
     <div className="border rounded p-3 bg-white text-black">
-      {/* 닉네임 + 수정 버튼 */}
       <div className="flex justify-between items-start">
         <p className="text-sm text-gray-700 font-medium">
           {comment.nickname || '익명'}
@@ -104,7 +93,6 @@ export default function CommentItem({ comment, allComments, pollId, setComments 
         )}
       </div>
 
-      {/* 본문 or 수정창 */}
       {!editMode ? (
         <div className="text-sm mt-1 whitespace-pre-line">
           {comment.text}
@@ -139,10 +127,9 @@ export default function CommentItem({ comment, allComments, pollId, setComments 
         </div>
       )}
 
-      {/* 답글 */}
-      <div className="mt-2">
+      <div className="mt-2 ml-4">
         {visibleReplies.map((reply) => (
-          <div key={reply.id} className="mt-3 ml-4 border-l pl-3">
+          <div key={reply.id} className="mt-3 border-l pl-3">
             <CommentItem
               comment={reply}
               allComments={allComments}
@@ -152,7 +139,6 @@ export default function CommentItem({ comment, allComments, pollId, setComments 
           </div>
         ))}
 
-        {/* 더보기/접기 버튼 */}
         {replies.length > 1 && (
           <div className="ml-4 mt-2">
             <button
@@ -166,7 +152,6 @@ export default function CommentItem({ comment, allComments, pollId, setComments 
           </div>
         )}
 
-        {/* 답글 작성 UI */}
         {user && !comment.parentId && (
           <div className="mt-2">
             {!showReply ? (
@@ -208,6 +193,10 @@ export default function CommentItem({ comment, allComments, pollId, setComments 
     </div>
   )
 }
+
+
+
+
 
 
 

@@ -16,35 +16,25 @@
       "static/chunks/main-app.js",
       "static/chunks/app/polls/[id]/page.js"
     ],
-    "/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
-    ],
     "/polls/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/polls/page.js"
-    ],
-    "/create/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/create/page.js"
     ],
     "/mypage/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/mypage/page.js"
     ],
-    "/mypage/polls/[id]/edit/page": [
+    "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/mypage/polls/[id]/edit/page.js"
+      "static/chunks/app/login/page.js"
     ],
-    "/signup/page": [
+    "/not-found": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/signup/page.js"
+      "static/chunks/app/not-found.js"
     ]
   }
 }

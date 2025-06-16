@@ -2,6 +2,7 @@
 
 import './globals.css'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ReactNode, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { auth, db } from '@/lib/firebase'
@@ -62,8 +63,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ko">
       <body className="min-h-screen flex flex-col">
         {/* 상단 */}
-        <header className="bg-slate-100 px-6 py-4 shadow-md flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold text-purple-600">MyVote</Link>
+        <header className="bg-slate-100 px-6 py-2 shadow-md flex justify-between items-center">
+          <Link href="/" className="flex items-center space-x-2">
+            <Image
+              src="/images/pollsday-logo.png"
+              alt="PollsDay Logo"
+              width={140}
+              height={40}
+            />
+          </Link>
 
           <nav className="flex gap-4 text-sm font-medium text-purple-700">
             {user ? (
@@ -112,7 +120,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
         {/* 하단 푸터 */}
         <footer className="bg-slate-200 text-center text-sm text-gray-600 py-4">
-          © 2025 MyVote. 팬들의 힘으로 세상을 움직이다.
+          © 2025 PollsDay. 참여의 힘으로 세상을 움직이다.
         </footer>
       </body>
     </html>

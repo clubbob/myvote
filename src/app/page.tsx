@@ -86,9 +86,9 @@ export default function HomePage() {
     <div className="bg-white min-h-screen py-10 px-4">
       {/* Hero Section */}
       <section className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-purple-700 mb-3">🎉 MyVote에 오신 걸 환영합니다!</h1>
+        <h1 className="text-4xl font-bold text-purple-700 mb-3">🎉 PollsDay에 오신 걸 환영합니다!</h1>
         <p className="text-gray-600 text-lg">
-          팬들과 함께 투표하고, 나만의 투표도 만들어 보세요.
+          함께 투표하고, 나만의 투표도 만들어 보세요.
         </p>
         <div className="mt-6">
           <button

@@ -12,7 +12,7 @@ import {
   doc,
   getDoc,
 } from 'firebase/firestore'
-import { deleteObject, refFromURL } from 'firebase/storage'
+import { deleteObject, ref } from 'firebase/storage'
 import { db, storage } from '@/lib/firebase'
 import { useAuthStore } from '@/stores/authStore'
 import { format, differenceInCalendarDays } from 'date-fns'
@@ -103,6 +103,7 @@ export default function MyPage() {
     fetchPolls()
     fetchCategories()
   }, [user])
+
   const formatPoll = (id: string, data: any, voteCount: number): Poll => {
     const createdAt =
       data.createdAt?.toDate instanceof Function
@@ -173,7 +174,7 @@ export default function MyPage() {
 
       if (pollData?.mainImageUrl) {
         try {
-          await deleteObject(refFromURL(pollData.mainImageUrl))
+          await deleteObject(ref(storage, pollData.mainImageUrl))
         } catch (e) {
           console.warn('대표 이미지 삭제 실패:', e)
         }
@@ -183,7 +184,7 @@ export default function MyPage() {
         for (const opt of pollData.options) {
           if (opt.imageUrl) {
             try {
-              await deleteObject(refFromURL(opt.imageUrl))
+              await deleteObject(ref(storage, opt.imageUrl))
             } catch (e) {
               console.warn('옵션 이미지 삭제 실패:', e)
             }
@@ -193,134 +194,46 @@ export default function MyPage() {
 
       const votesSnap = await getDocs(collection(db, `polls/${pollId}/votes`))
       await Promise.all(votesSnap.docs.map(doc => deleteDoc(doc.ref)))
-      const commentsSnap = await getDocs(collection(db, `polls/${pollId}/comments`))
-      await Promise.all(commentsSnap.docs.map(doc => deleteDoc(doc.ref)))
+      const commentsSnap = await getDocs(collection(db, `comments`))
+      const relatedComments = commentsSnap.docs.filter(
+        (doc) => doc.data().pollId === pollId
+      )
+      await Promise.all(relatedComments.map((doc) => deleteDoc(doc.ref)))
 
       await deleteDoc(doc(db, 'polls', pollId))
-      toast.success('투표가 삭제되었습니다.')
 
-      setMyPolls(prev => prev.filter(p => p.id !== pollId))
-      setMyFilteredPolls(prev => prev.filter(p => p.id !== pollId))
-    } catch (err) {
-      console.error(err)
+      toast.success('삭제 완료!')
+      setMyPolls((prev) => prev.filter((p) => p.id !== pollId))
+      setMyFilteredPolls((prev) => prev.filter((p) => p.id !== pollId))
+    } catch (error) {
+      console.error('삭제 오류:', error)
       toast.error('삭제 중 오류가 발생했습니다.')
     }
   }
 
-  const renderPollList = (polls: Poll[], visibleCount: number, isMine: boolean) =>
-    polls.length === 0 ? (
-      <p className="text-gray-500">표시할 투표가 없습니다.</p>
-    ) : (
-      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {polls.slice(0, visibleCount).map((poll) => {
-          const createdText = poll.createdAt
-            ? format(new Date(poll.createdAt), 'yyyy. M. d.', { locale: ko })
-            : '날짜 없음'
-
-          const deadlineDate = poll.deadline ? new Date(poll.deadline) : null
-          const isValidDeadline = deadlineDate && !isNaN(deadlineDate.getTime())
-
-          const deadlineText = isValidDeadline
-            ? `${format(deadlineDate, 'yyyy. M. d.', { locale: ko })} (D-${Math.max(
-                0,
-                differenceInCalendarDays(deadlineDate, new Date())
-              )})`
-            : '마감일 없음'
-
-          return (
-            <li
-              key={poll.id}
-              className="min-w-[300px] bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition overflow-hidden"
-            >
-              <div className="flex justify-between items-start gap-2 mb-2">
-                <h2 className="text-lg font-semibold text-gray-900 leading-snug w-full max-w-full">
-                  <Link
-                    href={`/polls/${poll.id}`}
-                    className="hover:underline block break-words whitespace-normal"
-                  >
-                    {poll.title}
-                  </Link>
-                </h2>
-                <div className="flex flex-col items-end gap-1">
-                  {!poll.isPublic && (
-                    <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-0.5 rounded-full whitespace-nowrap">
-                      비공개
-                    </span>
-                  )}
-                  {poll.isDisabled && (
-                    <span className="text-xs bg-gray-200 text-gray-700 font-medium px-2 py-0.5 rounded-full whitespace-nowrap">
-                      비활성화
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-sm text-gray-700 space-y-1 mb-3">
-                <p>📂 <span className="font-bold">카테고리:</span> {poll.category}</p>
-                <p>🛠️ <span className="font-bold">제작일:</span> {createdText}</p>
-                <p>⏰ <span className="font-bold">마감일:</span> {deadlineText}</p>
-                <p>👥 <span className="font-bold">참여자:</span> {poll.voteCount ?? 0}명</p>
-                <p>🔢 <span className="font-bold">참여제한:</span> {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}</p>
-              </div>
-
-              <div className="mt-4 text-right space-x-2">
-                {isMine && (
-                  <>
-                    <Link
-                      href={`/mypage/polls/${poll.id}/edit`}
-                      className="inline-block text-sm text-blue-600 hover:underline"
-                    >
-                      ✏️ 수정
-                    </Link>
-                    <button
-                      onClick={() => handleDeletePoll(poll.id)}
-                      className="inline-block text-sm text-red-600 hover:underline ml-2"
-                    >
-                      🗑 삭제
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => {
-                    const url = `${window.location.origin}/polls/${poll.id}`
-                    const text = poll.isPublic
-                      ? `📊 MyVote 투표에 참여해보세요!\n${url}`
-                      : `📊 MyVote 투표에 참여해보세요!\n${url}\n비밀번호: ${poll.password || ''}`
-                    navigator.clipboard.writeText(text)
-                    toast.success('복사되었습니다!')
-                  }}
-                  className="bg-purple-600 text-white px-4 py-1.5 text-sm rounded-full hover:bg-purple-700 transition"
-                >
-                  📎 링크 복사
-                </button>
-              </div>
-            </li>
-          )
-        })}
-      </ul>
-    )
-
   return (
-    <div className="bg-gray-50 py-10 min-h-screen">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2">👤 마이페이지</h1>
-          <Link href="/mypage/profile" className="text-sm text-blue-600 hover:underline">
-            내 프로필 보기 / 수정
-          </Link>
-        </div>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-purple-700">🧑 마이페이지</h1>
+        <Link
+          href="/mypage/profile"
+          className="text-sm text-blue-600 hover:underline"
+        >
+          내 프로필 보기 / 수정
+        </Link>
+      </div>
 
-        {/* 내가 만든 투표 */}
-        <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">📋 내가 만든 투표</h1>
+      {/* 내가 만든 투표 */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold mb-4">📌 내가 만든 투표</h2>
 
-        {/* 검색 UI */}
-        <div className="flex flex-wrap gap-3 mb-4 items-center">
+        <div className="flex flex-wrap gap-3 items-center mb-4">
           <input
             type="text"
-            placeholder="제목 검색"
             value={mySearchInput}
             onChange={(e) => setMySearchInput(e.target.value)}
-            className="flex-1 min-w-[200px] max-w-md px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            placeholder="제목으로 검색"
+            className="px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
           />
           <select
             value={mySelectedCategory}
@@ -328,8 +241,10 @@ export default function MyPage() {
             className="px-3 py-2 border rounded-full"
           >
             <option value="">전체 카테고리</option>
-            {categories.map(c => (
-              <option key={c.slug} value={c.slug}>{c.name}</option>
+            {categories.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.name}
+              </option>
             ))}
           </select>
           <button
@@ -338,47 +253,118 @@ export default function MyPage() {
           >
             검색
           </button>
+          <div className="ml-auto flex gap-2">
+            <button
+              onClick={() => {
+                setMyFilter('active')
+                handleMySearch()
+              }}
+              className={`px-4 py-1 rounded-full text-sm ${myFilter === 'active' ? 'bg-gray-800 text-white' : 'bg-gray-200'}`}
+            >
+              진행중
+            </button>
+            <button
+              onClick={() => {
+                setMyFilter('closed')
+                handleMySearch()
+              }}
+              className={`px-4 py-1 rounded-full text-sm ${myFilter === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}
+            >
+              마감됨
+            </button>
+          </div>
         </div>
 
-        {/* 필터 버튼 */}
-        <div className="flex gap-4 mb-6">
-          <button
-            className={`px-3 py-1 rounded-full ${myFilter === 'active' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
-            onClick={() => setMyFilter('active')}
-          >
-            진행중
-          </button>
-          <button
-            className={`px-3 py-1 rounded-full ${myFilter === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
-            onClick={() => setMyFilter('closed')}
-          >
-            마감됨
-          </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {myFilteredPolls.slice(0, visibleMyCount).map((poll) => {
+            const deadlineDate = poll.deadline ? new Date(poll.deadline) : null
+            const dday = deadlineDate
+              ? differenceInCalendarDays(deadlineDate, new Date())
+              : null
+
+            return (
+              <div
+                key={poll.id}
+                className={`border rounded-lg p-4 shadow-sm bg-white hover:shadow-md transition space-y-1 relative ${poll.isDisabled ? 'opacity-60' : ''
+                  }`}
+              >
+                <h3 className="text-lg font-bold break-words whitespace-normal text-left">
+                  <Link
+                    href={`/polls/${poll.id}`}
+                    className="text-purple-800 hover:underline"
+                  >
+                    {poll.title}
+                  </Link>
+                  {!poll.isPublic && (
+                    <span className="text-xs text-white bg-red-400 rounded-full px-2 py-0.5 ml-2">
+                      비공개
+                    </span>
+                  )}
+                  {poll.isDisabled && (
+                    <span className="text-xs text-white bg-gray-500 rounded-full px-2 py-0.5 ml-2">
+                      비활성화
+                    </span>
+                  )}
+                </h3>
+                <p className="text-sm">📂 카테고리: {poll.category}</p>
+                {poll.createdAt && (
+                  <p className="text-sm">
+                    🛠 제작일:{' '}
+                    {format(new Date(poll.createdAt), 'yyyy.MM.dd', { locale: ko })}
+                  </p>
+                )}
+                {deadlineDate && (
+                  <p className="text-sm">
+                    ⏰ 마감일: {format(deadlineDate, 'yyyy.MM.dd')} (
+                    D{dday! >= 0 ? `-${dday}` : `+${Math.abs(dday!)}`})
+                  </p>
+                )}
+                <p className="text-sm">👥 참여자 수: {poll.voteCount ?? 0}</p>
+                <p className="text-sm">
+                  👥 참여제한: {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}
+                </p>
+                <div className="flex gap-3 mt-2">
+                  <Link
+                    href={`/mypage/polls/${poll.id}/edit`}
+                    className="text-blue-600 text-sm hover:underline"
+                  >
+                    ✏️ 수정
+                  </Link>
+                  <button
+                    onClick={() => handleDeletePoll(poll.id)}
+                    className="text-red-600 text-sm hover:underline"
+                  >
+                    🗑 삭제
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </div>
 
-        {renderPollList(myFilteredPolls.filter(p => filterPolls([p], myFilter).length > 0), visibleMyCount, true)}
-
-        {myFilteredPolls.filter(p => filterPolls([p], myFilter).length > 0).length > visibleMyCount && (
-          <div className="mt-6 text-center">
+        {visibleMyCount < myFilteredPolls.length && (
+          <div className="text-center mt-6">
             <button
               onClick={() => setVisibleMyCount(prev => prev + 9)}
-              className="text-sm px-4 py-2 bg-gray-200 rounded-full hover:bg-gray-300"
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm"
             >
-              더 보기
+              🔽 더 보기
             </button>
           </div>
         )}
+      </section>
 
-        {/* 내가 참여한 투표 */}
-        <h1 className="text-3xl font-bold mt-12 mb-4 flex items-center gap-2">🗳️ 내가 참여한 투표</h1>
+      {/* 내가 참여한 투표 */}
+      <section>
+        <h2 className="text-2xl font-bold mb-4">🙋 내가 참여한 투표</h2>
 
-        <div className="flex flex-wrap gap-3 mb-4 items-center">
+        <div className="flex flex-wrap gap-3 items-center mb-4">
           <input
             type="text"
-            placeholder="제목 검색"
             value={votedSearchInput}
             onChange={(e) => setVotedSearchInput(e.target.value)}
-            className="flex-1 min-w-[200px] max-w-md px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            placeholder="제목으로 검색"
+            className="px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
           />
           <select
             value={votedSelectedCategory}
@@ -386,8 +372,10 @@ export default function MyPage() {
             className="px-3 py-2 border rounded-full"
           >
             <option value="">전체 카테고리</option>
-            {categories.map(c => (
-              <option key={c.slug} value={c.slug}>{c.name}</option>
+            {categories.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.name}
+              </option>
             ))}
           </select>
           <button
@@ -396,38 +384,93 @@ export default function MyPage() {
           >
             검색
           </button>
+          <div className="ml-auto flex gap-2">
+            <button
+              onClick={() => {
+                setVotedFilter('active')
+                handleVotedSearch()
+              }}
+              className={`px-4 py-1 rounded-full text-sm ${votedFilter === 'active' ? 'bg-gray-800 text-white' : 'bg-gray-200'}`}
+            >
+              진행중
+            </button>
+            <button
+              onClick={() => {
+                setVotedFilter('closed')
+                handleVotedSearch()
+              }}
+              className={`px-4 py-1 rounded-full text-sm ${votedFilter === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}
+            >
+              마감됨
+            </button>
+          </div>
         </div>
 
-        <div className="flex gap-4 mb-6">
-          <button
-            className={`px-3 py-1 rounded-full ${votedFilter === 'active' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
-            onClick={() => setVotedFilter('active')}
-          >
-            진행중
-          </button>
-          <button
-            className={`px-3 py-1 rounded-full ${votedFilter === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
-            onClick={() => setVotedFilter('closed')}
-          >
-            마감됨
-          </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {votedFilteredPolls.slice(0, visibleVotedCount).map((poll) => {
+            const deadlineDate = poll.deadline ? new Date(poll.deadline) : null
+            const dday = deadlineDate
+              ? differenceInCalendarDays(deadlineDate, new Date())
+              : null
+
+            return (
+              <div
+                key={poll.id}
+                className={`border rounded-lg p-4 shadow-sm bg-white hover:shadow-md transition space-y-1 relative ${poll.isDisabled ? 'opacity-60' : ''
+                  }`}
+              >
+                <h3 className="text-lg font-bold break-words whitespace-normal text-left">
+                  <Link
+                    href={`/polls/${poll.id}`}
+                    className="text-purple-800 hover:underline"
+                  >
+                    {poll.title}
+                  </Link>
+                  {!poll.isPublic && (
+                    <span className="text-xs text-white bg-red-400 rounded-full px-2 py-0.5 ml-2">
+                      비공개
+                    </span>
+                  )}
+                  {poll.isDisabled && (
+                    <span className="text-xs text-white bg-gray-500 rounded-full px-2 py-0.5 ml-2">
+                      비활성화
+                    </span>
+                  )}
+                </h3>
+                <p className="text-sm">📂 카테고리: {poll.category}</p>
+                {poll.createdAt && (
+                  <p className="text-sm">
+                    🛠 제작일:{' '}
+                    {format(new Date(poll.createdAt), 'yyyy.MM.dd', { locale: ko })}
+                  </p>
+                )}
+                {deadlineDate && (
+                  <p className="text-sm">
+                    ⏰ 마감일: {format(deadlineDate, 'yyyy.MM.dd')} (
+                    D{dday! >= 0 ? `-${dday}` : `+${Math.abs(dday!)}`})
+                  </p>
+                )}
+                <p className="text-sm">👥 참여자 수: {poll.voteCount ?? 0}</p>
+                <p className="text-sm">
+                  👥 참여제한: {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}
+                </p>
+              </div>
+            )
+          })}
         </div>
 
-        {renderPollList(votedFilteredPolls.filter(p => filterPolls([p], votedFilter).length > 0), visibleVotedCount, false)}
-
-        {votedFilteredPolls.filter(p => filterPolls([p], votedFilter).length > 0).length > visibleVotedCount && (
-          <div className="mt-6 text-center">
+        {visibleVotedCount < votedFilteredPolls.length && (
+          <div className="text-center mt-6">
             <button
               onClick={() => setVisibleVotedCount(prev => prev + 9)}
-              className="text-sm px-4 py-2 bg-gray-200 rounded-full hover:bg-gray-300"
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm"
             >
-              더 보기
+              🔽 더 보기
             </button>
           </div>
         )}
-      </div>
+      </section>
     </div>
   )
 }
-
 

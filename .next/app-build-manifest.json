@@ -21,16 +21,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/mypage/page.js"
     ],
-    "/polls/[id]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/polls/[id]/page.js"
-    ],
-    "/mypage/polls/[id]/edit/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mypage/polls/[id]/edit/page.js"
-    ],
     "/create/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -41,10 +31,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/polls/page.js"
     ],
-    "/mypage/profile/page": [
+    "/polls/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/mypage/profile/page.js"
+      "static/chunks/app/polls/[id]/page.js"
     ],
     "/admin/dashboard/page": [
       "static/chunks/webpack.js",
@@ -55,16 +45,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/admin/polls/page.js"
-    ],
-    "/admin/polls/[id]/edit/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/polls/[id]/edit/page.js"
-    ],
-    "/admin/polls/[id]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/polls/[id]/page.js"
     ]
   }
 }

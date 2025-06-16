@@ -55,7 +55,7 @@ export default function PollDetailPage() {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [passwordInput, setPasswordInput] = useState('')
   const [passwordVerified, setPasswordVerified] = useState(false)
-  const [voteCount, setVoteCount] = useState(0) // 👈 추가
+  const [voteCount, setVoteCount] = useState(0)
 
   useEffect(() => {
     const fetchPoll = async () => {
@@ -94,7 +94,6 @@ export default function PollDetailPage() {
 
         setPoll(data)
 
-        // 👥 참여자 수 계산
         const totalVotes = data.options.reduce((acc, opt) => acc + (opt.votes?.length || 0), 0)
         setVoteCount(totalVotes)
       }
@@ -109,6 +108,12 @@ export default function PollDetailPage() {
     if (!user) {
       alert('투표에 참여하려면 로그인이 필요합니다.')
       router.push(`/login?redirect=/polls/${id}`)
+      return
+    }
+
+    // 🔒 비공개일 경우 비밀번호 확인 필수
+    if (!poll.isPublic && !passwordVerified) {
+      toast.error('비공개 투표입니다. 비밀번호를 먼저 입력해주세요.')
       return
     }
 
@@ -205,12 +210,38 @@ export default function PollDetailPage() {
               ? `${format(new Date(poll.deadline), 'yyyy. M. d.', { locale: ko })} (D-${Math.max(0, differenceInCalendarDays(new Date(poll.deadline), new Date()))})`
               : '마감일 없음'}
           </p>
-          <p>👥 <b>참여자 수:</b> {voteCount}명</p> {/* ✅ 이 줄만 추가 */}
+          <p>👥 <b>참여자 수:</b> {voteCount}명</p>
           <p>👥 <b>참여제한:</b> {poll.maxParticipants ?? '제한 없음'}명</p>
         </div>
 
-        {/* 이하 옵션/투표 버튼/댓글 등 그대로 유지 */}
-        <div className="space-y-4">
+        {/* 🔐 비공개 비밀번호 입력 UI */}
+        {!poll.isPublic && !passwordVerified && (
+          <div className="mt-6 p-4 border rounded bg-yellow-50">
+            <p className="mb-2 font-semibold">🔒 비공개 투표입니다. 비밀번호를 입력해주세요.</p>
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              className="border px-3 py-2 rounded w-full mb-2"
+              placeholder="비밀번호 입력"
+            />
+            <button
+              onClick={() => {
+                if (passwordInput === poll.password) {
+                  setPasswordVerified(true)
+                  toast.success('비밀번호 인증 성공!')
+                } else {
+                  toast.error('비밀번호가 틀렸습니다.')
+                }
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              확인
+            </button>
+          </div>
+        )}
+
+        <div className="space-y-4 mt-6">
           {poll.options.map((option) => {
             const voteCount = option.votes?.length || 0
             const percent = poll.votedUsers?.length
@@ -268,7 +299,7 @@ export default function PollDetailPage() {
           })}
         </div>
 
-        {!hasVoted && (
+        {!hasVoted && passwordVerified && (
           <button
             onClick={handleVote}
             disabled={!selectedOptionId}
@@ -305,3 +336,4 @@ export default function PollDetailPage() {
     </>
   )
 }
+

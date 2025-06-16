@@ -15,10 +15,11 @@ import {
 } from 'firebase/auth'
 import { toast } from 'sonner'
 
-const birthYearList = Array.from({ length: 100 }, (_, i) => (2024 - i).toString()) // 1924~2024
+const birthYearList = Array.from({ length: 100 }, (_, i) => (2024 - i).toString())
 
 export default function ProfilePage() {
   const { user } = useAuthStore()
+  const [name, setName] = useState('')
   const [nickname, setNickname] = useState('')
   const [birthYear, setBirthYear] = useState('')
   const [gender, setGender] = useState('')
@@ -33,6 +34,7 @@ export default function ProfilePage() {
       const snap = await getDoc(ref)
       if (snap.exists()) {
         const data = snap.data()
+        setName(data.name || '')
         setNickname(data.nickname || '')
         setBirthYear(data.birthYear || '')
         setGender(data.gender || '')
@@ -46,6 +48,7 @@ export default function ProfilePage() {
     setLoading(true)
     try {
       await updateDoc(doc(db, 'users', user.uid), {
+        name,
         nickname,
         birthYear,
         gender,
@@ -83,6 +86,15 @@ export default function ProfilePage() {
 
       <div className="space-y-4">
         <div>
+          <label className="block font-medium mb-1">이름</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full border p-2 rounded"
+          />
+        </div>
+
+        <div>
           <label className="block font-medium mb-1">닉네임</label>
           <input
             value={nickname}
@@ -92,7 +104,7 @@ export default function ProfilePage() {
         </div>
 
         <div>
-          <label className="block font-medium mb-1">출생연도 (birthYear)</label>
+          <label className="block font-medium mb-1">출생연도</label>
           <select
             value={birthYear}
             onChange={(e) => setBirthYear(e.target.value)}
@@ -168,4 +180,5 @@ export default function ProfilePage() {
     </div>
   )
 }
+
 

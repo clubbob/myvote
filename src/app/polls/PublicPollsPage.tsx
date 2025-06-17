@@ -251,7 +251,7 @@ export default function PublicPollsPage() {
                   : null
 
                 return (
-                  <li key={poll.id} ref={(el) => (cardRefs.current[idx] = el)}>
+                  <li key={poll.id} ref={(el) => {cardRefs.current[idx] = el}}>
                     <Link
                       href={`/polls/${poll.id}`}
                       className="block bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition h-full"

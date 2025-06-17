@@ -164,6 +164,14 @@ export default function MyPage() {
     setVisibleVotedCount(9)
   }
 
+  // ✅ 필터 변경 시 자동 검색 실행
+  useEffect(() => {
+    handleMySearch()
+  }, [myFilter])
+
+  useEffect(() => {
+    handleVotedSearch()
+  }, [votedFilter])
   const handleDeletePoll = async (pollId: string) => {
     const confirmed = confirm('이 투표를 삭제하시겠습니까? (참여자가 있어도 삭제됩니다)')
     if (!confirmed) return
@@ -215,10 +223,8 @@ export default function MyPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-purple-700">🧑 마이페이지</h1>
-        <Link
-          href="/mypage/profile"
-          className="text-sm text-blue-600 hover:underline"
-        >
+        <Link href="/mypage/profile" 
+          className="text-sm bg-purple-600 text-white px-4 py-2 rounded-full hover:bg-purple-700 transition">
           내 프로필 보기 / 수정
         </Link>
       </div>
@@ -227,7 +233,7 @@ export default function MyPage() {
       <section className="mb-12">
         <h2 className="text-2xl font-bold mb-4">📌 내가 만든 투표</h2>
 
-        <div className="flex flex-wrap gap-3 items-center mb-4">
+        <div className="flex flex-wrap gap-3 items-center mb-2">
           <input
             type="text"
             value={mySearchInput}
@@ -242,9 +248,7 @@ export default function MyPage() {
           >
             <option value="">전체 카테고리</option>
             {categories.map((c) => (
-              <option key={c.slug} value={c.slug}>
-                {c.name}
-              </option>
+              <option key={c.slug} value={c.slug}>{c.name}</option>
             ))}
           </select>
           <button
@@ -253,26 +257,29 @@ export default function MyPage() {
           >
             검색
           </button>
-          <div className="ml-auto flex gap-2">
-            <button
-              onClick={() => {
-                setMyFilter('active')
-                handleMySearch()
-              }}
-              className={`px-4 py-1 rounded-full text-sm ${myFilter === 'active' ? 'bg-gray-800 text-white' : 'bg-gray-200'}`}
-            >
-              진행중
-            </button>
-            <button
-              onClick={() => {
-                setMyFilter('closed')
-                handleMySearch()
-              }}
-              className={`px-4 py-1 rounded-full text-sm ${myFilter === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}
-            >
-              마감됨
-            </button>
-          </div>
+        </div>
+
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setMyFilter('active')}
+            className={`px-4 py-1 rounded-full text-sm font-semibold
+              ${myFilter === 'active'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-200 text-gray-800'}
+            `}
+          >
+            진행중
+          </button>
+          <button
+            onClick={() => setMyFilter('closed')}
+            className={`px-4 py-1 rounded-full text-sm font-semibold
+              ${myFilter === 'closed'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-200 text-gray-800'}
+            `}
+          >
+            마감됨
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -283,59 +290,34 @@ export default function MyPage() {
               : null
 
             return (
-              <div
-                key={poll.id}
-                className={`border rounded-lg p-4 shadow-sm bg-white hover:shadow-md transition space-y-1 relative ${poll.isDisabled ? 'opacity-60' : ''
-                  }`}
-              >
+              <div key={poll.id} className={`border rounded-lg p-4 shadow-sm bg-white hover:shadow-md transition space-y-1 relative ${poll.isDisabled ? 'opacity-60' : ''}`}>
                 <h3 className="text-lg font-bold break-words whitespace-normal text-left">
-                  <Link
-                    href={`/polls/${poll.id}`}
-                    className="text-purple-800 hover:underline"
-                  >
+                  <Link href={`/polls/${poll.id}`} className="text-purple-800 hover:underline">
                     {poll.title}
                   </Link>
                   {!poll.isPublic && (
-                    <span className="text-xs text-white bg-red-400 rounded-full px-2 py-0.5 ml-2">
-                      비공개
-                    </span>
+                    <span className="text-xs text-white bg-red-400 rounded-full px-2 py-0.5 ml-2">비공개</span>
                   )}
                   {poll.isDisabled && (
-                    <span className="text-xs text-white bg-gray-500 rounded-full px-2 py-0.5 ml-2">
-                      비활성화
-                    </span>
+                    <span className="text-xs text-white bg-gray-500 rounded-full px-2 py-0.5 ml-2">비활성화</span>
                   )}
                 </h3>
                 <p className="text-sm">📂 카테고리: {poll.category}</p>
                 {poll.createdAt && (
                   <p className="text-sm">
-                    🛠 제작일:{' '}
-                    {format(new Date(poll.createdAt), 'yyyy.MM.dd', { locale: ko })}
+                    🛠 제작일: {format(new Date(poll.createdAt), 'yyyy.MM.dd', { locale: ko })}
                   </p>
                 )}
                 {deadlineDate && (
                   <p className="text-sm">
-                    ⏰ 마감일: {format(deadlineDate, 'yyyy.MM.dd')} (
-                    D{dday! >= 0 ? `-${dday}` : `+${Math.abs(dday!)}`})
+                    ⏰ 마감일: {format(deadlineDate, 'yyyy.MM.dd')} (D{dday! >= 0 ? `-${dday}` : `+${Math.abs(dday!)}`})
                   </p>
                 )}
                 <p className="text-sm">👥 참여자 수: {poll.voteCount ?? 0}</p>
-                <p className="text-sm">
-                  👥 참여제한: {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}
-                </p>
+                <p className="text-sm">👥 참여제한: {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}</p>
                 <div className="flex gap-3 mt-2">
-                  <Link
-                    href={`/mypage/polls/${poll.id}/edit`}
-                    className="text-blue-600 text-sm hover:underline"
-                  >
-                    ✏️ 수정
-                  </Link>
-                  <button
-                    onClick={() => handleDeletePoll(poll.id)}
-                    className="text-red-600 text-sm hover:underline"
-                  >
-                    🗑 삭제
-                  </button>
+                  <Link href={`/mypage/polls/${poll.id}/edit`} className="text-blue-600 text-sm hover:underline">✏️ 수정</Link>
+                  <button onClick={() => handleDeletePoll(poll.id)} className="text-red-600 text-sm hover:underline">🗑 삭제</button>
                 </div>
               </div>
             )
@@ -344,10 +326,7 @@ export default function MyPage() {
 
         {visibleMyCount < myFilteredPolls.length && (
           <div className="text-center mt-6">
-            <button
-              onClick={() => setVisibleMyCount(prev => prev + 9)}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm"
-            >
+            <button onClick={() => setVisibleMyCount(prev => prev + 9)} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm">
               🔽 더 보기
             </button>
           </div>
@@ -358,7 +337,7 @@ export default function MyPage() {
       <section>
         <h2 className="text-2xl font-bold mb-4">🙋 내가 참여한 투표</h2>
 
-        <div className="flex flex-wrap gap-3 items-center mb-4">
+        <div className="flex flex-wrap gap-3 items-center mb-2">
           <input
             type="text"
             value={votedSearchInput}
@@ -373,9 +352,7 @@ export default function MyPage() {
           >
             <option value="">전체 카테고리</option>
             {categories.map((c) => (
-              <option key={c.slug} value={c.slug}>
-                {c.name}
-              </option>
+              <option key={c.slug} value={c.slug}>{c.name}</option>
             ))}
           </select>
           <button
@@ -384,26 +361,29 @@ export default function MyPage() {
           >
             검색
           </button>
-          <div className="ml-auto flex gap-2">
-            <button
-              onClick={() => {
-                setVotedFilter('active')
-                handleVotedSearch()
-              }}
-              className={`px-4 py-1 rounded-full text-sm ${votedFilter === 'active' ? 'bg-gray-800 text-white' : 'bg-gray-200'}`}
-            >
-              진행중
-            </button>
-            <button
-              onClick={() => {
-                setVotedFilter('closed')
-                handleVotedSearch()
-              }}
-              className={`px-4 py-1 rounded-full text-sm ${votedFilter === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200'}`}
-            >
-              마감됨
-            </button>
-          </div>
+        </div>
+
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setVotedFilter('active')}
+            className={`px-4 py-1 rounded-full text-sm font-semibold
+              ${votedFilter === 'active'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-200 text-gray-800'}
+            `}
+          >
+            진행중
+          </button>
+          <button
+            onClick={() => setVotedFilter('closed')}
+            className={`px-4 py-1 rounded-full text-sm font-semibold
+              ${votedFilter === 'closed'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-200 text-gray-800'}
+            `}
+          >
+            마감됨
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -414,46 +394,31 @@ export default function MyPage() {
               : null
 
             return (
-              <div
-                key={poll.id}
-                className={`border rounded-lg p-4 shadow-sm bg-white hover:shadow-md transition space-y-1 relative ${poll.isDisabled ? 'opacity-60' : ''
-                  }`}
-              >
+              <div key={poll.id} className={`border rounded-lg p-4 shadow-sm bg-white hover:shadow-md transition space-y-1 relative ${poll.isDisabled ? 'opacity-60' : ''}`}>
                 <h3 className="text-lg font-bold break-words whitespace-normal text-left">
-                  <Link
-                    href={`/polls/${poll.id}`}
-                    className="text-purple-800 hover:underline"
-                  >
+                  <Link href={`/polls/${poll.id}`} className="text-purple-800 hover:underline">
                     {poll.title}
                   </Link>
                   {!poll.isPublic && (
-                    <span className="text-xs text-white bg-red-400 rounded-full px-2 py-0.5 ml-2">
-                      비공개
-                    </span>
+                    <span className="text-xs text-white bg-red-400 rounded-full px-2 py-0.5 ml-2">비공개</span>
                   )}
                   {poll.isDisabled && (
-                    <span className="text-xs text-white bg-gray-500 rounded-full px-2 py-0.5 ml-2">
-                      비활성화
-                    </span>
+                    <span className="text-xs text-white bg-gray-500 rounded-full px-2 py-0.5 ml-2">비활성화</span>
                   )}
                 </h3>
                 <p className="text-sm">📂 카테고리: {poll.category}</p>
                 {poll.createdAt && (
                   <p className="text-sm">
-                    🛠 제작일:{' '}
-                    {format(new Date(poll.createdAt), 'yyyy.MM.dd', { locale: ko })}
+                    🛠 제작일: {format(new Date(poll.createdAt), 'yyyy.MM.dd', { locale: ko })}
                   </p>
                 )}
                 {deadlineDate && (
                   <p className="text-sm">
-                    ⏰ 마감일: {format(deadlineDate, 'yyyy.MM.dd')} (
-                    D{dday! >= 0 ? `-${dday}` : `+${Math.abs(dday!)}`})
+                    ⏰ 마감일: {format(deadlineDate, 'yyyy.MM.dd')} (D{dday! >= 0 ? `-${dday}` : `+${Math.abs(dday!)}`})
                   </p>
                 )}
                 <p className="text-sm">👥 참여자 수: {poll.voteCount ?? 0}</p>
-                <p className="text-sm">
-                  👥 참여제한: {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}
-                </p>
+                <p className="text-sm">👥 참여제한: {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}</p>
               </div>
             )
           })}
@@ -461,10 +426,7 @@ export default function MyPage() {
 
         {visibleVotedCount < votedFilteredPolls.length && (
           <div className="text-center mt-6">
-            <button
-              onClick={() => setVisibleVotedCount(prev => prev + 9)}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm"
-            >
+            <button onClick={() => setVisibleVotedCount(prev => prev + 9)} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm">
               🔽 더 보기
             </button>
           </div>
@@ -473,3 +435,4 @@ export default function MyPage() {
     </div>
   )
 }
+

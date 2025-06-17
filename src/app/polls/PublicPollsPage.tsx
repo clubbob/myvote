@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import {
   collection,
   getDocs,
@@ -42,18 +42,44 @@ export default function PublicPollsPage() {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('active')
   const [visibleCount, setVisibleCount] = useState(9)
+  const searchParams = useSearchParams()
   const now = new Date()
 
-  const searchParams = useSearchParams()
+  const cardRefs = useRef<(HTMLLIElement | null)[]>([])
+
+  const syncHeights = () => {
+    const rowHeights: number[] = []
+    let currentRowTop = -1
+    let currentRow: HTMLLIElement[] = []
+
+    cardRefs.current.forEach((el) => {
+      if (!el) return
+      el.style.height = 'auto'
+    })
+
+    cardRefs.current.forEach((el) => {
+      if (!el) return
+      const top = el.offsetTop
+      if (top !== currentRowTop) {
+        const maxHeight = Math.max(...currentRow.map((e) => e.offsetHeight))
+        currentRow.forEach((e) => (e.style.height = `${maxHeight}px`))
+        currentRow = [el]
+        currentRowTop = top
+      } else {
+        currentRow.push(el)
+      }
+    })
+
+    const maxHeight = Math.max(...currentRow.map((e) => e.offsetHeight))
+    currentRow.forEach((e) => (e.style.height = `${maxHeight}px`))
+  }
 
   useEffect(() => {
     const fetchPolls = async () => {
-      const snapshot = await getDocs(
-        query(collection(db, 'polls'), orderBy('createdAt', 'desc'))
-      )
+      const snapshot = await getDocs(query(collection(db, 'polls'), orderBy('createdAt', 'desc')))
       const fetchedPolls = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as Poll))
-        .filter(p => p.isPublic)
+        .map((doc) => ({ id: doc.id, ...doc.data() } as Poll))
+        .filter((p) => p.isPublic)
 
       setAllPolls(fetchedPolls)
       setDisplayedPolls(filterAndSlice(fetchedPolls, '', '', 'active', 9))
@@ -70,10 +96,8 @@ export default function PublicPollsPage() {
     }
 
     const fetchCategories = async () => {
-      const snapshot = await getDocs(
-        query(collection(db, 'categories'), orderBy('order', 'asc'))
-      )
-      const data = snapshot.docs.map(doc => doc.data() as Category)
+      const snapshot = await getDocs(query(collection(db, 'categories'), orderBy('order', 'asc')))
+      const data = snapshot.docs.map((doc) => doc.data() as Category)
       setCategories(data)
     }
 
@@ -94,6 +118,13 @@ export default function PublicPollsPage() {
       setDisplayedPolls(filtered)
     }
   }, [searchParams, allPolls])
+
+  useEffect(() => {
+    syncHeights()
+    window.addEventListener('resize', syncHeights)
+    return () => window.removeEventListener('resize', syncHeights)
+  }, [displayedPolls])
+
   const filterAndSlice = (
     polls: Poll[],
     keyword: string,
@@ -102,15 +133,13 @@ export default function PublicPollsPage() {
     count: number
   ): Poll[] => {
     return polls
-      .filter(p => {
+      .filter((p) => {
         const titleMatch = p.title.toLowerCase().includes(keyword.toLowerCase())
         const categoryMatch = category ? p.category === category : true
 
         let deadlineValid = true
         if (p.deadline) {
-          const d = p.deadline instanceof Timestamp
-            ? p.deadline.toDate()
-            : new Date(p.deadline)
+          const d = p.deadline instanceof Timestamp ? p.deadline.toDate() : new Date(p.deadline)
           deadlineValid = status === 'active' ? d >= now : d < now
         }
 
@@ -149,7 +178,6 @@ export default function PublicPollsPage() {
       <div className="max-w-6xl mx-auto px-6">
         <h1 className="text-3xl font-bold text-purple-700 mb-4">🗳️ 전체 공개 투표</h1>
 
-        {/* 🔍 검색 + 카테고리 + 버튼 */}
         <div className="mb-6 flex flex-wrap gap-3 items-center">
           <input
             type="text"
@@ -178,17 +206,24 @@ export default function PublicPollsPage() {
           </button>
         </div>
 
-        {/* 🔘 진행중 / 마감됨 필터 */}
         <div className="flex gap-4 mb-6">
           <button
             onClick={() => handleStatusChange('active')}
-            className={`px-4 py-1 rounded-full ${filterStatus === 'active' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+            className={`px-4 py-1 rounded-full ${
+              filterStatus === 'active'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-200 text-gray-800'
+            }`}
           >
             진행중
           </button>
           <button
             onClick={() => handleStatusChange('closed')}
-            className={`px-4 py-1 rounded-full ${filterStatus === 'closed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+            className={`px-4 py-1 rounded-full ${
+              filterStatus === 'closed'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-200 text-gray-800'
+            }`}
           >
             마감됨
           </button>
@@ -199,7 +234,7 @@ export default function PublicPollsPage() {
         ) : (
           <>
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {displayedPolls.map((poll) => {
+              {displayedPolls.map((poll, idx) => {
                 const createdDate =
                   typeof poll.createdAt === 'string'
                     ? new Date(poll.createdAt)
@@ -216,10 +251,10 @@ export default function PublicPollsPage() {
                   : null
 
                 return (
-                  <li key={poll.id}>
+                  <li key={poll.id} ref={(el) => (cardRefs.current[idx] = el)}>
                     <Link
                       href={`/polls/${poll.id}`}
-                      className="block bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition"
+                      className="block bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition h-full"
                     >
                       <h2 className="text-lg font-semibold mb-2 text-gray-900 break-words whitespace-normal">
                         {poll.title}
@@ -228,15 +263,10 @@ export default function PublicPollsPage() {
                         <p>📂 <strong>카테고리:</strong> {poll.category}</p>
                         <p>🛠 <strong>제작일:</strong> {format(createdDate, 'yyyy. M. d.')}</p>
                         {deadlineDate && (
-                          <p>
-                            ⏰ <strong>마감일:</strong> {format(deadlineDate, 'yyyy. M. d.')} (D-{dday})
-                          </p>
+                          <p>⏰ <strong>마감일:</strong> {format(deadlineDate, 'yyyy. M. d.')} (D-{dday})</p>
                         )}
                         <p>👥 <strong>참여자 수:</strong> {voteCounts[poll.id] ?? '로딩 중...'}</p>
-                        <p>
-                          👥 <strong>참여제한:</strong>{' '}
-                          {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}
-                        </p>
+                        <p>👥 <strong>참여제한:</strong> {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}</p>
                       </div>
                     </Link>
                   </li>
@@ -244,20 +274,17 @@ export default function PublicPollsPage() {
               })}
             </ul>
 
-            {/* ➕ 더 보기 버튼 */}
             {displayedPolls.length < allPolls.filter((poll) => {
               const titleMatch = poll.title.toLowerCase().includes(searchKeyword.toLowerCase())
               const categoryMatch = searchCategory ? poll.category === searchCategory : true
 
               let isDeadlineValid = true
               if (poll.deadline) {
-                const deadlineDate = poll.deadline instanceof Timestamp
-                  ? poll.deadline.toDate()
-                  : new Date(poll.deadline)
-                isDeadlineValid =
-                  filterStatus === 'active'
-                    ? deadlineDate >= now
-                    : deadlineDate < now
+                const deadlineDate =
+                  poll.deadline instanceof Timestamp
+                    ? poll.deadline.toDate()
+                    : new Date(poll.deadline)
+                isDeadlineValid = filterStatus === 'active' ? deadlineDate >= now : deadlineDate < now
               }
 
               return titleMatch && categoryMatch && isDeadlineValid
@@ -277,6 +304,3 @@ export default function PublicPollsPage() {
     </div>
   )
 }
-
-
-

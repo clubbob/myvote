@@ -1,21 +1,8 @@
 {
-  "/_not-found": "app/_not-found.js",
-  "/admin/categories/page": "app/admin/categories/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/admin/polls/[id]/edit/page": "app/admin/polls/[id]/edit/page.js",
-  "/admin/polls/[id]/page": "app/admin/polls/[id]/page.js",
-  "/admin/polls/page": "app/admin/polls/page.js",
-  "/admin/users/page": "app/admin/users/page.js",
-  "/create/page": "app/create/page.js",
-  "/email-verified/page": "app/email-verified/page.js",
-  "/forgot-password/page": "app/forgot-password/page.js",
-  "/login/page": "app/login/page.js",
-  "/mypage/page": "app/mypage/page.js",
-  "/page": "app/page.js",
-  "/mypage/polls/[id]/edit/page": "app/mypage/polls/[id]/edit/page.js",
-  "/mypage/profile/page": "app/mypage/profile/page.js",
   "/polls/[id]/page": "app/polls/[id]/page.js",
-  "/polls/page": "app/polls/page.js",
-  "/signup/page": "app/signup/page.js",
-  "/test-upload/page": "app/test-upload/page.js"
+  "/create/page": "app/create/page.js",
+  "/admin/polls/page": "app/admin/polls/page.js",
+  "/mypage/profile/page": "app/mypage/profile/page.js",
+  "/page": "app/page.js",
+  "/polls/page": "app/polls/page.js"
 }

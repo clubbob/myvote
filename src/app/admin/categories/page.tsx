@@ -15,6 +15,7 @@ import {
 import { db } from '@/lib/firebase'
 import { toast } from 'sonner'
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd'
+import { categoryImages } from '@/data/categoryImages'
 
 interface Category {
   id: string
@@ -22,22 +23,6 @@ interface Category {
   imagePath: string
   order: number
 }
-
-const imageFiles = [
-  'fandom.jpg',
-  'love.jpg',
-  'media.jpg',
-  'fashion.jpg',
-  'food.jpg',
-  'hobby.jpg',
-  'daily.jpg',
-  'culture.jpg',
-  'tech.jpg',
-  'politics.jpg',
-  'economy.jpg',
-  'edu.jpg',
-  'free.jpg',
-]
 
 export default function AdminCategoryPage() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -159,9 +144,9 @@ export default function AdminCategoryPage() {
           className="border px-3 py-2 rounded"
         >
           <option value="">파일 선택</option>
-          {imageFiles.map(file => (
-            <option key={file} value={file}>
-              {file}
+          {categoryImages.map(({ filename, label }) => (
+            <option key={filename} value={filename}>
+              {filename} ({label})
             </option>
           ))}
         </select>
@@ -207,9 +192,9 @@ export default function AdminCategoryPage() {
                                   className="border px-2 py-1 rounded text-sm w-full"
                                 >
                                   <option value="">파일 선택</option>
-                                  {imageFiles.map(file => (
-                                    <option key={file} value={file}>
-                                      {file}
+                                  {categoryImages.map(({ filename, label }) => (
+                                    <option key={filename} value={filename}>
+                                      {filename} ({label})
                                     </option>
                                   ))}
                                 </select>
@@ -286,5 +271,6 @@ export default function AdminCategoryPage() {
     </div>
   )
 }
+
 
 

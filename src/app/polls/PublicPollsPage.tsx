@@ -8,6 +8,8 @@ import {
   orderBy,
   query,
   Timestamp,
+  doc,
+  getDoc,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { format, differenceInCalendarDays } from 'date-fns'
@@ -22,6 +24,7 @@ interface Poll {
   deadline?: string | Timestamp
   maxParticipants?: number
   isPublic: boolean
+  createdBy: string
 }
 
 interface Category {
@@ -36,6 +39,7 @@ export default function PublicPollsPage() {
   const [displayedPolls, setDisplayedPolls] = useState<Poll[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({})
+  const [nicknames, setNicknames] = useState<Record<string, string>>({})
   const [searchInput, setSearchInput] = useState('')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchCategory, setSearchCategory] = useState('')
@@ -48,7 +52,6 @@ export default function PublicPollsPage() {
   const cardRefs = useRef<(HTMLLIElement | null)[]>([])
 
   const syncHeights = () => {
-    const rowHeights: number[] = []
     let currentRowTop = -1
     let currentRow: HTMLLIElement[] = []
 
@@ -84,6 +87,23 @@ export default function PublicPollsPage() {
       setAllPolls(fetchedPolls)
       setDisplayedPolls(filterAndSlice(fetchedPolls, '', '', 'active', 9))
 
+      const uidList = Array.from(new Set(fetchedPolls.map((p) => p.createdBy).filter(Boolean)))
+      const nicknameMap: Record<string, string> = {}
+
+      await Promise.all(
+        uidList.map(async (uid) => {
+          const userSnap = await getDoc(doc(db, 'users', uid))
+          if (userSnap.exists()) {
+            const data = userSnap.data()
+            nicknameMap[uid] = data.nickname || '작성자'
+          } else {
+            nicknameMap[uid] = '작성자'
+          }
+        })
+      )
+
+      setNicknames(nicknameMap)
+
       const voteCountPromises = fetchedPolls.map(async (poll) => {
         const voteRef = collection(db, 'polls', poll.id, 'votes')
         const snapshot = await getCountFromServer(voteRef)
@@ -104,7 +124,6 @@ export default function PublicPollsPage() {
     fetchPolls()
     fetchCategories()
   }, [])
-
   useEffect(() => {
     if (searchParams.get('reset') === '1') {
       setSearchInput('')
@@ -175,7 +194,7 @@ export default function PublicPollsPage() {
 
   return (
     <div className="bg-gray-50 py-10 min-h-screen">
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-6">
         <h1 className="text-3xl font-bold text-purple-700 mb-4">🗳️ 전체 공개 투표</h1>
 
         <div className="mb-6 flex flex-wrap gap-3 items-center">
@@ -251,7 +270,13 @@ export default function PublicPollsPage() {
                   : null
 
                 return (
-                  <li key={poll.id} ref={(el) => {cardRefs.current[idx] = el}}>
+                  <li
+                    key={poll.id}
+                    ref={(el) => {
+                      cardRefs.current[idx] = el
+                    }}
+                    className="w-full sm:w-[340px]"
+                  >
                     <Link
                       href={`/polls/${poll.id}`}
                       className="block bg-white p-5 rounded-2xl shadow-md hover:ring-2 hover:ring-purple-300 transition h-full"
@@ -259,11 +284,20 @@ export default function PublicPollsPage() {
                       <h2 className="text-lg font-semibold mb-2 text-gray-900 break-words whitespace-normal">
                         {poll.title}
                       </h2>
-                      <div className="text-sm text-gray-700 space-y-1">
-                        <p>📂 <strong>카테고리:</strong> {poll.category}</p>
+
+                      {/* ✅ 수정된 메타 정보 줄 */}
+                      <div className="flex flex-wrap gap-2 items-center text-sm text-gray-600 mt-2">
+                        <span className="flex items-center gap-1">📁 {poll.category}</span>
+                        {deadlineDate && (
+                          <span className="flex items-center gap-1">⏳ D-{dday}일</span>
+                        )}
+                        <span className="flex items-center gap-1">✏️ {nicknames[poll.createdBy] ?? '작성자'}</span>
+                      </div>
+
+                      <div className="text-sm text-gray-700 space-y-1 mt-3">
                         <p>🛠 <strong>제작일:</strong> {format(createdDate, 'yyyy. M. d.')}</p>
                         {deadlineDate && (
-                          <p>⏰ <strong>마감일:</strong> {format(deadlineDate, 'yyyy. M. d.')} (D-{dday})</p>
+                          <p>⏰ <strong>마감일:</strong> {format(deadlineDate, 'yyyy. M. d.')}</p>
                         )}
                         <p>👥 <strong>참여자 수:</strong> {voteCounts[poll.id] ?? '로딩 중...'}</p>
                         <p>👥 <strong>참여제한:</strong> {poll.maxParticipants ? `${poll.maxParticipants}명` : '제한 없음'}</p>
@@ -292,9 +326,9 @@ export default function PublicPollsPage() {
               <div className="text-center mt-8">
                 <button
                   onClick={handleLoadMore}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700"
+                  className="px-6 py-2 bg-purple-600 text-white text-base font-medium rounded-full shadow hover:bg-purple-700 transition"
                 >
-                  더 보기
+                  <span className="[&::before]:content-none">더 보기</span>
                 </button>
               </div>
             )}

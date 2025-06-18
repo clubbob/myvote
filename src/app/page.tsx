@@ -21,7 +21,7 @@ interface Poll {
   mainImageUrl?: string
   isPublic?: boolean
   createdBy: string
-  nickname?: string // 닉네임 매핑 후 추가됨
+  nickname?: string
 }
 
 const PAGE_SIZE = 8
@@ -40,16 +40,13 @@ export default function HomePage() {
         ...(doc.data() as DocumentData),
       })) as Poll[]
 
-      // createdBy(uid) 목록 수집
       const uids = Array.from(new Set(rawPolls.map(p => p.createdBy)))
 
-      // users 컬렉션에서 닉네임 매핑
       const userSnap = await getDocs(collection(db, 'users'))
       const userMap = new Map(
         userSnap.docs.map(doc => [doc.id, doc.data().nickname])
       )
 
-      // poll에 nickname 추가
       const enrichedPolls: Poll[] = rawPolls.map(p => ({
         ...p,
         nickname: userMap.get(p.createdBy) || '익명',
@@ -105,9 +102,9 @@ export default function HomePage() {
     }
     router.push(`/polls/${id}`)
   }
+
   return (
     <div className="bg-white min-h-screen py-10 px-4">
-      {/* Hero Section */}
       <section className="text-center mb-12">
         <h1 className="text-4xl font-bold text-purple-700 mb-3">🎉 PollsDay에 오신 걸 환영합니다!</h1>
         <p className="text-gray-600 text-lg">함께 투표하고, 나만의 투표도 만들어 보세요.</p>
@@ -121,7 +118,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 실시간 인기 투표 */}
       <section className="max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold mb-6">🔥 실시간 인기 투표</h2>
 
@@ -157,11 +153,11 @@ export default function HomePage() {
                       <div className="text-sm text-gray-600 mt-1 flex justify-between items-center">
                         <div className="flex gap-2">
                           <span>📂 {poll.category}</span>
-                          <span>• ⏳ D-{dDay}일</span>
+                          <span>⏳ D-{dDay}일</span>
                         </div>
-                        {poll.nickname && (
-                          <span className="text-xs text-gray-500 truncate">✏ {poll.nickname}</span>
-                        )}
+                        <span className="text-xs text-gray-500 truncate">
+                          ✏ {poll.nickname || '익명'}
+                        </span>
                       </div>
                     </div>
                   </div>
